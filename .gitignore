@@ -1,0 +1,60 @@
+# Python: 
+__pycache__/
+.venv/
+*.pyc
+.env
+
+# Node: 
+node_modules/
+.vscode/ 
+
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+.next/
+out/
+
+# Env files
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor / OS
+.vscode/
+.DS_Store
+
+# Claude Code personal notes (keep private)
+CLAUDE.local.md
+
+# ── Never publish to the public repo ────────────────────────────────────────
+# Claude / AI assistant files
+CLAUDE.md
+.claude/
+*.claude
+
+# Saved sessions & session artifacts (may contain private data)
+*.clue
+*.analyzer
+sessions/
+portables/
+
+# Local datasets / scratch (keep private data out of the repo)
+*.csv
+*.tsv
+*.xlsx
+*.xls
+.python-version
+
+# OS / editor cruft
+Thumbs.db
+.idea/
