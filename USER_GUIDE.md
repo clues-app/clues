@@ -6,7 +6,7 @@ It's built for people who have data and questions but don't want to code: scient
 
 > **Why Clues, when a chatbot can also draw a chart?** Because you can't cite a chat. A chatbot's chart is a one-off: the same request tomorrow gives different bins, colors, and layout, and the method lives in a transcript nobody can review. Clues works the other way around - the AI proposes, you review, Clues draws, deterministically, from your data, every time.
 >
-> - **Same chart, every time.** Every chart is defined by a compact spec, not a conversation. The spec is your methods section: inspectable, repeatable, shareable ([section 12](#12-ai-assistant--copy-context--import-spec)).
+> - **Same chart, every time.** Every chart is defined by a compact spec, not a conversation. The spec is your methods section: inspectable, repeatable, shareable ([section 12](#12-ai-assistant---copy-context--import-spec)).
 > - **Every edit accounted for.** Sign your dataset, and Clues can later verify that the data is the signed source plus only its documented edits ([section 13](#13-data-audit-trail)).
 > - **Context travels with the figure.** Snapshots permanently caption the exact filters that produced them, and a shared session keeps charts live and explorable, not a dead PNG at the end of an email chain ([sections 9](#9-per-chart-controls-notes--snapshots) and [11](#11-saving--sharing)).
 
@@ -29,7 +29,7 @@ It's built for people who have data and questions but don't want to code: scient
 9. [Per-chart controls, notes & snapshots](#9-per-chart-controls-notes--snapshots)
 10. [3D & animation](#10-3d--animation)
 11. [Saving & sharing](#11-saving--sharing)
-12. [AI assistant - copy context & import spec](#12-ai-assistant--copy-context--import-spec)
+12. [AI assistant - copy context & import spec](#12-ai-assistant---copy-context--import-spec)
 13. [Data audit trail](#13-data-audit-trail)
 14. [Dark mode, help & version](#14-dark-mode-help--version)
 15. [Tips & troubleshooting](#15-tips--troubleshooting)
@@ -37,7 +37,7 @@ It's built for people who have data and questions but don't want to code: scient
 
 ---
 
-## 1 · The interface
+## 1. The interface
 
 Clues has two zones - a **left sidebar** and the **main chart area** - plus a top toolbar. The **Clues logo** at the far left of the toolbar doubles as a toggle - click it to **hide or show the whole left sidebar**, so you can give the charts the full width for exploring or presenting; the panel is visible by default and the choice is saved with your session. **Collapsing it while on a chart tab switches to an all-in-one view** that stacks **every** chart family that has charts (each under a small heading) - a quick dashboard of everything at once. (On the data tabs - Overview, Raw data, Description, AI - collapsing just widens the current view.) Re-open the panel to go back to one family at a time.
 
@@ -58,7 +58,7 @@ The **top toolbar** holds the dataset **Description** button, **Help & Guide**, 
 
 ---
 
-## 2 · Loading data
+## 2. Loading data
 
 You can start in several ways:
 
@@ -76,7 +76,7 @@ When you drop a fresh CSV, Clues **does not** throw you into a random chart - it
 
 ---
 
-## 3 · Dataset views
+## 3. Dataset views
 
 ### 3.1 Description
 
@@ -111,11 +111,11 @@ At the top sits a **Source file** panel showing the loaded file's name, size, an
 
 ### 3.4 AI responses
 
-Appears once you've imported an AI spec. It's a record of everything an AI assistant produced - see [section 12](#12-ai-assistant--copy-context--import-spec).
+Appears once you've imported an AI spec. It's a record of everything an AI assistant produced - see [section 12](#12-ai-assistant---copy-context--import-spec).
 
 ---
 
-## 4 · Graph types
+## 4. Graph types
 
 Each **Graph Type** is a tab holding one or more chart cards. Add charts with **+ Add chart** (pick a type), and remove any chart from its options menu. Most settings are **per chart**, so two cards in the same tab can look completely different.
 
@@ -184,7 +184,7 @@ Adding a measure switches the chart to multi-measure mode, so **Group by**, face
 
 ---
 
-## 5 · Maps
+## 5. Maps
 
 Maps use Plotly's geographic traces - **no map token, and nothing baked into the file**. The plain (Outline) maps use Plotly's built-in boundaries; tile maps and custom-region maps fetch their boundaries and map tiles **from the internet at render time** (cached), so the single file stays small. There are two kinds.
 
@@ -228,7 +228,7 @@ Shade regions by the average of a metric per region. Controls:
 
 ---
 
-## 6 · Filtering & selections
+## 6. Filtering & selections
 
 Open the **Filters** tab in the sidebar.
 
@@ -252,7 +252,7 @@ Open the **Filters** tab in the sidebar.
 
 ---
 
-## 7 · Appearance & theming
+## 7. Appearance & theming
 
 Open the **Appearance** tab.
 
@@ -268,7 +268,7 @@ Color and style edits apply **live** to every chart type (pie, donut, maps inclu
 
 ---
 
-## 8 · Fields (column settings)
+## 8. Fields (column settings)
 
 Open the **Fields** tab. For each column you can:
 
@@ -283,7 +283,7 @@ Open the **Fields** tab. For each column you can:
 
 ---
 
-## 9 · Per-chart controls, notes & snapshots
+## 9. Per-chart controls, notes & snapshots
 
 Each chart card has a header with its **type** and field pickers, and a **⋮ options** button. A **chevron** at the far left **collapses that chart's control toolbar** (the type / field / axis pickers) into a thin bar for a cleaner, presentation-style view - the **⋮ options** menu and the link toggle stay reachable while collapsed.
 
@@ -310,7 +310,7 @@ Workflow: **apply a filter → Snapshot the chart → clear the filter.** The li
 
 ---
 
-## 10 · 3D & animation
+## 10. 3D & animation
 
 For **3D Scatter**, **3D Line**, and **3D Histograms**:
 
@@ -323,7 +323,7 @@ For **3D Scatter**, **3D Line**, and **3D Histograms**:
 
 ---
 
-## 11 · Saving & sharing
+## 11. Saving & sharing
 
 - **Autosave** - your work is continuously saved in the browser, so a refresh keeps the latest state.
 - **Save Session** → a **`.clue`** file that captures your data **and** every filter, color, alias, layout choice, and AI-import record. Reopen with **Load Session** (or just drop the file in). Saves use your browser's folder picker and remember the destination; a message confirms where it went. **Optional password:** set one in the Save dialog to **encrypt** the file (AES-GCM) - anyone opening it in Clues must enter the password. It's fully offline and there's **no recovery for a forgotten password**. *(The interactive-share HTML can be password-protected too - see below.)*
@@ -340,7 +340,7 @@ For **3D Scatter**, **3D Line**, and **3D Histograms**:
 
 ---
 
-## 12 · AI assistant - copy context & import spec
+## 12. AI assistant - copy context & import spec
 
 Clues can hand any AI assistant (ChatGPT, Claude, Gemini, …) a precise brief about **what it can do**, take back a JSON spec, and act on it - either **building an analysis** or **restyling your charts**. Two violet toolbar buttons drive it: **AI context** and **Import AI spec**. Because the brief is generated from Clues itself, the assistant can build **every chart type the app offers** and set **every style** you can set by hand.
 
@@ -433,7 +433,7 @@ A view under the **Dataset** group lists every import, each headed by a **one-li
 
 ---
 
-## 13 · Data audit trail
+## 13. Data audit trail
 
 For situations where it matters that data wasn't quietly altered, Clues offers a **passphrase-signed audit trail** (the shield button in the toolbar).
 
@@ -447,7 +447,7 @@ For situations where it matters that data wasn't quietly altered, Clues offers a
 
 ---
 
-## 14 · Dark mode, help & version
+## 14. Dark mode, help & version
 
 - **Dark mode** - toggle in the toolbar; charts, maps, and snapshot captions follow.
 - **Help & Guide** - the in-app quick guide (a condensed version of this manual).
@@ -458,7 +458,7 @@ For situations where it matters that data wasn't quietly altered, Clues offers a
 
 ---
 
-## 15 · Tips & troubleshooting
+## 15. Tips & troubleshooting
 
 - **No "Over Time" tab?** You need a column detected as a **date**. Set one in **Fields → type → Date**.
 - **A 0/1 or year column behaving like a measure?** Set it to **Categorical** in Fields to unlock grouping, faceting, pies, and choropleths. (Clues hints at this in Overview.)
@@ -473,7 +473,7 @@ For situations where it matters that data wasn't quietly altered, Clues offers a
 
 ---
 
-## 16 · Under the hood & credits
+## 16. Under the hood & credits
 
 Clues is a **single HTML file** - no server, no build step, no install, no account. It runs entirely in your browser and stands on the shoulders of superb open-source libraries (deliberately version-pinned for stability, loaded from their public CDNs):
 
@@ -489,7 +489,7 @@ Optional password protection uses the browser's built-in **Web Crypto** (AES-GCM
 
 Built with the help of Anthropic's Claude (AI pair programming).
 
-**What touches the network - the complete list.** Clues makes no network calls of its own: no telemetry, no analytics, no account, no server, and your data is never transmitted anywhere. The only things fetched from the internet are (1) the libraries above, loaded when the page opens and cached by your browser, and (2) map tiles and region boundaries, only while a tile basemap or custom-region choropleth is on screen (the **Outline** basemap needs nothing). That is the whole list. An AI assistant sees your data only when **you** copy the AI context yourself, and only what the sample-values toggle allows ([section 12](#12-ai-assistant--copy-context--import-spec)). Once the page has loaded, you can disconnect from the internet entirely and everything except tile maps keeps working.
+**What touches the network - the complete list.** Clues makes no network calls of its own: no telemetry, no analytics, no account, no server, and your data is never transmitted anywhere. The only things fetched from the internet are (1) the libraries above, loaded when the page opens and cached by your browser, and (2) map tiles and region boundaries, only while a tile basemap or custom-region choropleth is on screen (the **Outline** basemap needs nothing). That is the whole list. An AI assistant sees your data only when **you** copy the AI context yourself, and only what the sample-values toggle allows ([section 12](#12-ai-assistant---copy-context--import-spec)). Once the page has loaded, you can disconnect from the internet entirely and everything except tile maps keeps working.
 
 **Keep your own copy current.** A file someone shares with you is great for a one-off look, but it may be an older or edited build. To keep using Clues on your own data, get the latest official version from **[github.com/clues-app/clues](https://github.com/clues-app/clues)** and read its README.
 

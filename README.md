@@ -4,6 +4,8 @@
 
 The entire application is **one `Clues.html` file that runs in your browser**. No server, no build step, no install, no account. Every **CSV or Excel** file you open is parsed and charted **entirely client-side** - your data never leaves your machine.
 
+**Try it now: [clues.ai](https://clues.ai)** - it runs right in your browser, nothing to download. Want your own copy? Grab the single file below and run it fully offline.
+
 > Built for people who have data and questions but don't want to code - scientists, analysts, lab managers, students. Drop a file in, and Clues profiles it, flags oddities, and suggests charts you can build with one click.
 
 ## Why Clues, when a chatbot can also draw a chart?
@@ -35,6 +37,8 @@ Because you can't cite a chat. A chatbot's chart is a one-off - ask again tomorr
 - **Dark mode**, plus a version footer that stamps every shared file with the build that produced it.
 
 ## Quick start
+
+**Fastest:** just open **[clues.ai](https://clues.ai)** - no download, nothing to install. To run it offline or keep your own copy:
 
 1. **Download** [`Clues.html`](Clues.html) from this repository.
 2. **Open it** in a modern browser (Chrome, Edge, Firefox, or Safari) - double-click, or serve the folder (`python -m http.server`) for the interactive-share self-read path.
