@@ -53,7 +53,7 @@ Inside the *Filters, Appearance, Fields* group, the row-counter line adds two he
 
 The **main area** shows your charts (or the dataset views), laid out in **1 or 2 columns**.
 
-The **top toolbar** holds the dataset **Description** button, **Help & Guide**, the **audit** button, **dark mode**, **AI context** and **Import AI spec** (violet), **Export to Excel / Save Session / Share (interactive) / Load Session**, **Present** (one click hides the side panel, every chart's controls, and the analysis tables for a clean, full-width view - press **Esc** or click again to restore exactly what you had open), **Upload New Dataset**, and **Clear Session**.
+The **top toolbar** holds the dataset **Description** button, **Help & Guide**, the **audit** button, **dark mode**, **AI context** and **Import AI spec** (violet), **Export to Excel / Save Session / Share (interactive) / Load Session**, **Present** (one click hides the whole toolbar, the side panel, every chart's controls, and the analysis tables - the full window is charts; press **Esc** or the floating pill to restore exactly what you had open), **Upload New Dataset**, and **Clear Session**.
 
 ![Interface zones](docs/images/02-interface-zones.png)
 
