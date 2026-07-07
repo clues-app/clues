@@ -65,10 +65,20 @@
            so let the dropdowns size to their content (wider) to fit long field names. */
         .chart-ctl select { padding-right: 1.7rem; }
         .cols-1 .chart-ctl select { width: auto; max-width: 230px; }
+        /* Uniform toolbar rhythm: every select/input in a chart's control bar gets the SAME height
+           and the wrap rows sit closer together, so multi-column layouts wrap into tidy rows
+           instead of ragged ones (the controls were a mix of py-1 and py-1.5 heights). */
+        .chart-ctl { row-gap: 0.375rem; }
+        .chart-ctl select, .chart-ctl input[type="text"], .chart-ctl input[type="number"] { padding-top: 0.25rem; padding-bottom: 0.25rem; }
 
         /* Brief frame-blink to point out a chart jumped to from the AI responses view. */
         @keyframes cluesCardBlink { 0%, 100% { box-shadow: 0 0 0 0 rgba(139,92,246,0); } 30%, 70% { box-shadow: 0 0 0 4px rgba(139,92,246,0.65); } }
         .chart-blink { animation: cluesCardBlink 0.9s ease-in-out 6; border-color: #8b5cf6 !important; }
+
+        /* Gentle entrance for chart cards (runs once on mount) - disabled for reduced-motion users. */
+        @keyframes cluesCardIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        .chart-card-in { animation: cluesCardIn 0.28s ease-out; }
+        @media (prefers-reduced-motion: reduce) { .chart-card-in { animation: none; } }
 
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
@@ -495,8 +505,8 @@
         // the import validator, and the spec→chart builder all derive from it.
         // Each type maps a PUBLIC channel (x/y/color/size/shape) to the INTERNAL
         // chart field the existing renderer already understands.
-        const CLUES_AI_SPEC_VERSION = '1.2';
-        const CLUES_ACCEPTED_SPEC_VERSIONS = ['1.0', '1.1', '1.2'];
+        const CLUES_AI_SPEC_VERSION = '1.3';
+        const CLUES_ACCEPTED_SPEC_VERSIONS = ['1.0', '1.1', '1.2', '1.3'];
         const CLUES_FILTER_OPS = ['in', 'range', 'equals'];
         const CLUES_TYPE_TO_PUBLIC = { quant: 'quantitative', cat: 'categorical', date: 'temporal' };
         const CLUES_AI_REGISTRY = {
@@ -646,7 +656,7 @@
         //   series = one category of a color/group field · field = a column's display alias ·
         //   chart  = one existing chart by its "ref" · global = the whole workspace.
         const CLUES_AI_STYLE_OPS = {
-            series_color:     { scope: 'series', params: ['column', 'category', 'color'],    desc: 'Set one category\'s color (hex like "#1f77b4"). "column" is the color/group field, "category" its value.' },
+            series_color:     { scope: 'series', params: ['column', 'category', 'color'],    desc: 'Set one category\'s color (hex like "#2a78d6"). "column" is the color/group field, "category" its value.' },
             series_opacity:   { scope: 'series', params: ['column', 'category', 'opacity'],  desc: 'Set one category\'s transparency (0 = clear .. 1 = solid).' },
             series_shape:     { scope: 'series', params: ['column', 'category', 'shape'],    desc: 'Set one category\'s marker shape: circle, square, diamond, cross, x, triangle-up, pentagon, star.' },
             series_size:      { scope: 'series', params: ['column', 'category', 'size'],     desc: 'Scale one category\'s point size (0.1 .. 8; 1 = default).' },
@@ -660,12 +670,18 @@
             chart_title:      { scope: 'chart',  params: ['ref', 'title'],                   desc: 'Set an existing chart\'s title (by its "ref"). For bold/italic use HTML in the text - "<b>Title</b>", "<i>x</i>" - NOT Markdown (** **).' },
             chart_axis:       { scope: 'chart',  params: ['ref', 'axis', 'min', 'max'],      desc: 'Fix an existing chart\'s axis range. "axis" is "x" or "y"; omit min or max to keep it automatic.' },
             chart_colorscale: { scope: 'chart',  params: ['ref', 'colorscale', 'reverse'],   desc: 'Set a heatmap/map/grid chart\'s color scale (Blues, Greens, Viridis, RdBu, ...); "reverse" true/false.' },
-            chart_legend:     { scope: 'chart',  params: ['ref', 'position'],                desc: 'Move a chart\'s legend: top, bottom, left, or right.' },
+            chart_legend:     { scope: 'chart',  params: ['ref', 'position', 'x', 'y'],      desc: 'Move a chart\'s legend: top, bottom, left, right, inside (floating top-right corner), or custom with "x"/"y" (0..1 paper coordinates, 0,0 = bottom-left).' },
             chart_columns:    { scope: 'global', params: ['columns'],                        desc: 'Lay the whole workspace out 1 or 2 charts per row.' },
             title_style:      { scope: 'global', params: ['ref', 'size', 'bold', 'italic', 'color', 'position'], desc: 'Style chart titles: "size" px (omit for auto), "bold"/"italic" true/false, "color" hex, "position" top | bottom | left | right (where the title sits - use "bottom" when a treemap/sunburst crowds a top title) - pass only what you change. Applies to ALL titles, or add a "ref" to style ONE chart\'s title.' },
             chart_subtitle:   { scope: 'chart',  params: ['ref', 'text'],                    desc: 'Add a small subtitle line under a chart\'s title (by its "ref"); pass "" to remove it.' },
             chart_jitter:     { scope: 'chart',  params: ['ref', 'on', 'scale'],             desc: 'Point JITTER for a scatter chart (moves only the markers so overlapping points separate - the trendline and hover keep true values). "on": true|false. "scale": optional multiplier on the auto-computed amount (0.5 = subtler, 2 = bolder; default 1). Clues jitters a "stacking" axis automatically; use this to force it on/off or override the strength. Not applicable to line charts (time series / control).' },
-            chart_metrics:    { scope: 'chart',  params: ['ref', 'metrics', 'primary_axis', 'primary_color'], desc: 'Overlay EXTRA measures on a TIME-SERIES chart (like adding series in Excel). "metrics": an array of { "field": <numeric column>, "axis": "left" | "right", "color": optional hex } - each becomes its own line. Put a measure on "right" when its scale differs a lot from the others so both stay readable. "primary_axis"/"primary_color": axis + optional hex for the chart\'s base metric (default left, auto color). Pass "metrics": [] to clear the extras. Time series only (NOT control charts); this mode turns off group-by, faceting, and the spread band.' },
+            chart_metrics:    { scope: 'chart',  params: ['ref', 'metrics', 'primary_axis', 'primary_color', 'primary'], desc: 'Overlay EXTRA measures on a TIME-SERIES chart (like adding series in Excel). "metrics": an array of { "field": <numeric column>, "axis": "left" | "right" } - each becomes its own line; an entry may also style itself with "color" (hex), "opacity" 0..1, "fill" 0..1, "size" (point ×), "width" px, "shape", "dash", "alias". Put a measure on "right" when its scale differs a lot from the others. "primary_axis"/"primary_color": axis + optional hex for the chart\'s base metric; "primary": an object with the same style keys for the base metric. Pass "metrics": [] to clear the extras. Time series only (NOT control charts); this mode turns off group-by, faceting, and the spread band.' },
+            theme_slot:       { scope: 'global', params: ['slot', 'color', 'opacity', 'fill', 'width', 'size', 'shape'], desc: 'Style one DEFAULT-THEME slot (series 1..10 in draw order) - the fallback look of the Nth series on ANY chart whose category has no explicit override. Slots are portable across datasets (they are positions, not category names) - the right tool for a house style. Pass only what you change: "color" hex, "opacity" 0..1, "fill" 0..1, "width" px, "size" point-multiplier 0.1..8, "shape".' },
+            layout_style:     { scope: 'global', params: ['font', 'legend_position', 'legend_size', 'axis_size', 'tick_angle', 'minor_grid', 'dense_labels'], desc: 'Global chart layout - pass only what you change. "font": sans | serif | mono. "legend_position": top | bottom | left | right | inside (the default for charts without their own). "legend_size" / "axis_size": font px 6..24. "tick_angle": auto | 0 | -45 | -90 (x-axis labels). "minor_grid" / "dense_labels": true/false.' },
+            field_format:     { scope: 'field',  params: ['column', 'decimals', 'thousands', 'prefix', 'suffix', 'date_format'], desc: 'How a field renders on axes, hovers, and captions (display only). Numeric column: "decimals" 0..8, "thousands" true/false, "prefix" (e.g. "$"), "suffix" (e.g. " g"). Date column: "date_format" (d3, e.g. "%b %Y"). Pass "" to clear a part.' },
+            chart_display:    { scope: 'chart',  params: ['ref', 'title', 'labels', 'legend', 'style_legend', 'trendline', 'formula'], desc: 'Show/hide a chart\'s pieces (true = show, false = hide) - pass only what you change: "title", "labels" (value labels), "legend", "style_legend" (the Style-field legend), "trendline" and "formula" (scatter trendline + its equation).' },
+            style_field:      { scope: 'field',  params: ['column', 'value', 'weight', 'width', 'opacity', 'fill', 'alias'], desc: 'Style ONE VALUE of a scatter\'s Style field (3rd-field styling): "weight" bold | normal | light, "width" outline px, "opacity" 0..1, "fill" interior 0..1, "alias" legend label. Color and shape still come from the color field.' },
+            chart_map:        { scope: 'chart',  params: ['ref', 'basemap', 'label', 'opacity', 'zoom_scale', 'color_field'], desc: 'Map appearance (point or region maps): "basemap" streets | light | dark | outline. Point maps also take "label" (hover-name field; "" for none), "opacity" 0..1, "zoom_scale" true/false (dots grow as you zoom), "color_field" (numeric column for a continuous color scale; "" returns to group colors).' },
         };
         // ## Styling section text - GENERATED from CLUES_AI_STYLE_OPS.
         const aiStylingText = () => {
@@ -724,8 +740,9 @@
                 '- STATS TABLE: below every chart family is a table with the exact numbers behind the visuals - N, mean,',
                 '  std dev, and min/max per group (plus the Pearson correlation for scatter/relationships). In a note,',
                 '  point the user to it for the precise figures that confirm or refute what the chart suggests.',
-                '- You cannot set these via the spec, but in a note you may tell the user to: turn on the scatter',
-                '  trendline + equation (to read correlation strength), or lower series transparency to reveal overlap.',
+                '- Styling ops can also toggle chart pieces directly (chart_display: title / value labels / legend /',
+                '  scatter trendline + its equation) and lower series transparency to reveal overlap (series_opacity) -',
+                '  prefer doing these via styling instead of telling the user which buttons to click.',
                 '(charts are built immediately on import; suggestions are the steps you run afterward.)',
             ].join('\n');
         };
@@ -780,7 +797,21 @@
         // Series theme: the per-slot defaults (color/symbol/opacity/fill/width) applied to series
         // 1..N when a category has no explicit override. Editable in Appearance, persisted with the
         // session, and used as the fallback in getTraceStyle. Seeded from the classic palette.
-        const SERIES_PALETTE = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'];
+        // Curated categorical palette, CVD-validated on both surfaces (white and dark #1e293b).
+        // The LIGHT hex is a series' stored identity everywhere (sessions, specs, exports); in dark
+        // mode seriesColorForMode swaps in the validated dark twin at render time only. The slot
+        // ORDER is part of the validation (it maximizes adjacent-pair colorblind separation) - do
+        // not reorder without re-validating.
+        const SERIES_PALETTE = ['#2a78d6', '#1baf7a', '#eda100', '#4a3aa7', '#008300', '#e87ba4', '#e34948', '#eb6834', '#12a5bc', '#9a6324'];
+        const SERIES_PALETTE_DARK = {
+            '#2a78d6': '#3987e5', '#1baf7a': '#199e70', '#eda100': '#c98500', '#4a3aa7': '#9085e9',
+            '#008300': '#00a300', '#e87ba4': '#d55181', '#e34948': '#e66767', '#eb6834': '#d95926',
+            '#12a5bc': '#139db1', '#9a6324': '#b07a30'
+        };
+        const SERIES_PALETTE_LIGHT = Object.fromEntries(Object.entries(SERIES_PALETTE_DARK).map(([l, d]) => [d, l]));
+        const seriesColorForMode = (color, isDark) => (isDark && typeof color === 'string' && SERIES_PALETTE_DARK[color.toLowerCase()]) || color;
+        // Reverse: when snapshotting a resolved style into stored state, always store the light identity.
+        const seriesColorToLight = (color) => (typeof color === 'string' && SERIES_PALETTE_LIGHT[color.toLowerCase()]) || color;
         // Charts drawn with WebGL / 3D / mapbox tiles (3D scatter & line, TILE maps, parallel coordinates,
         // and the WebGL scatter-matrix) can't be exported to SVG by Plotly - only raster (PNG). But the
         // "Outline" basemap is a vector geo trace (scattergeo), so those maps DO export clean SVG. Gate the
@@ -1419,15 +1450,18 @@
             );
         };
 
-        const Accordion = ({ title, children, isOpen, onToggle, activeIndicator = false, activeTooltip = 'Active settings applied', titleHint }) => (
-            <div className="mb-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm">
-                <button onClick={onToggle} title={titleHint} className={`w-full flex justify-between items-center px-4 py-2 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-700 dark:text-slate-200 text-sm font-bold rounded-t-lg ${!isOpen ? 'rounded-b-lg' : 'border-b border-slate-200 dark:border-slate-700'}`}>
-                    <div className="flex items-center">
-                        {title}
-                        {activeIndicator && <span className="ml-2 w-2 h-2 rounded-full bg-blue-500 animate-pulse" title={activeTooltip || 'Active settings applied'} aria-label={activeTooltip || 'Active settings applied'}></span>}
-                    </div>
-                    <svg className={`w-4 h-4 transform transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
-                </button>
+        const Accordion = ({ title, children, isOpen, onToggle, activeIndicator = false, activeTooltip = 'Active settings applied', titleHint, containerProps, gripProps }) => (
+            <div {...(containerProps || {})} className={`mb-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm ${(containerProps && containerProps.className) || ''}`}>
+                <div className={`w-full flex items-center bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors rounded-t-lg ${!isOpen ? 'rounded-b-lg' : 'border-b border-slate-200 dark:border-slate-700'}`}>
+                    {gripProps && <span draggable title="Drag to reorder this section" {...gripProps} className="cursor-grab active:cursor-grabbing pl-3 -mr-1.5 py-2 text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400 shrink-0"><GripIcon /></span>}
+                    <button onClick={onToggle} title={titleHint} className="flex-1 flex justify-between items-center px-4 py-2 text-slate-700 dark:text-slate-200 text-sm font-bold min-w-0">
+                        <div className="flex items-center">
+                            {title}
+                            {activeIndicator && <span className="ml-2 w-2 h-2 rounded-full bg-blue-500 animate-pulse" title={activeTooltip || 'Active settings applied'} aria-label={activeTooltip || 'Active settings applied'}></span>}
+                        </div>
+                        <svg className={`w-4 h-4 transform transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                </div>
                 {isOpen && <div className="p-3">{children}</div>}
             </div>
         );
@@ -1491,6 +1525,10 @@
 
         const ChartCard = ({ chartId, titleOptions, topControls, bottomControls, onRemove, onImage, onImageSvg, onSnapshot, aiBadge, highlighted, showNotes, chartNotes, onToggleNotes, onUpdateNotes, showTitle, onToggleTitle, styleLegendOn, onToggleStyleLegend, styleBroken, onToggleBreakStyle, breakStyleControls, onDuplicate, onReorderStart, onReorderOver, onReorderDrop, onReorderEnd, reorderActive, children, heightClass, panelHeight, onResizeHeight, defaultCollapsed, metricStyleControls, filterActive, onResetFilter }) => {
             const [menuOpen, setMenuOpen] = useState(false);
+            // The two style sections of the options menu fold up by default - they hold a control per
+            // category/measure and can push the menu past the bottom of the screen.
+            const [indepColorsOpen, setIndepColorsOpen] = useState(false);
+            const [measureStylesOpen, setMeasureStylesOpen] = useState(false);
             // Control-toolbar collapse: follows the global default unless the per-chart chevron sets a local
             // override. Toggling the global default clears the override so "collapse/expand all" reaches every card.
             const [ctrlOverride, setCtrlOverride] = useState(null);
@@ -1540,7 +1578,7 @@
             return (
                 <div
                     ref={cardRef}
-                    className={`bg-white dark:bg-slate-800 rounded-xl shadow-sm border flex flex-col relative group transition-colors duration-200 ${styleHeight ? '' : heightClass} ${highlighted ? 'chart-blink' : ''} ${reorderActive ? 'border-blue-400 dark:border-blue-500 ring-2 ring-blue-300 dark:ring-blue-700' : 'border-slate-200 dark:border-slate-700'}`}
+                    className={`chart-card-in bg-white dark:bg-slate-800 rounded-xl shadow-sm hover:shadow-md border flex flex-col relative group transition-[background-color,border-color,box-shadow] duration-200 ${styleHeight ? '' : heightClass} ${highlighted ? 'chart-blink' : ''} ${reorderActive ? 'border-blue-400 dark:border-blue-500 ring-2 ring-blue-300 dark:ring-blue-700' : 'border-slate-200 dark:border-slate-700'}`}
                     style={styleHeight ? { height: styleHeight } : undefined}
                     onDragOver={onReorderOver ? (e => { e.preventDefault(); onReorderOver(); }) : undefined}
                     onDrop={onReorderDrop ? (e => { e.preventDefault(); onReorderDrop(); }) : undefined}
@@ -1554,8 +1592,8 @@
                             <button type="button" onClick={() => setCtrlOverride(!ctrlOpen)} aria-label={ctrlOpen ? 'Collapse chart controls' : 'Expand chart controls'} title={ctrlOpen ? 'Collapse the chart controls (type, fields, axes)' : 'Show the chart controls'} className="self-center shrink-0 w-6 h-6 inline-flex items-center justify-center rounded text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200 transition-colors">
                                 <svg className={`w-4 h-4 transition-transform ${ctrlOpen ? '' : '-rotate-90'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                             </button>
-                            <div className="chart-ctl flex flex-1 min-w-0 flex-wrap items-center gap-2">
-                                {ctrlOpen ? titleOptions : <span className="text-xs italic text-slate-400 dark:text-slate-500 select-none">controls hidden</span>}
+                            <div className={`chart-ctl flex flex-1 min-w-0 flex-wrap items-center gap-2 ${ctrlOpen ? '' : 'self-center'}`}>
+                                {ctrlOpen ? titleOptions : <button type="button" onClick={() => setCtrlOverride(true)} title="Show the chart controls" className="text-xs italic text-slate-400 dark:text-slate-500 select-none hover:text-slate-600 dark:hover:text-slate-300 transition-colors">controls hidden</button>}
                             </div>
                             {onToggleBreakStyle && (
                                 <button
@@ -1595,17 +1633,23 @@
                                     <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-white dark:ring-slate-800 animate-pulse pointer-events-none" title="This chart has a note"></span>
                                 )}
                                 {menuOpen && (
-                                    <div className={`absolute right-0 top-10 z-50 ${(breakStyleControls || metricStyleControls) ? 'w-72' : 'w-56'} rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl p-2 text-sm text-slate-700 dark:text-slate-200`}>
+                                    <div className={`absolute right-0 top-10 z-50 ${(breakStyleControls || metricStyleControls) ? 'w-72' : 'w-56'} max-h-[70vh] overflow-y-auto custom-scrollbar rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl p-2 text-sm text-slate-700 dark:text-slate-200`}>
                                         {breakStyleControls && (
                                             <div className="px-2 py-2 border-b border-slate-100 dark:border-slate-700">
-                                                <div className="text-[10px] uppercase tracking-wide font-bold text-amber-500 dark:text-amber-400 mb-2">This chart’s colors (independent)</div>
-                                                {breakStyleControls}
+                                                <button type="button" onClick={() => setIndepColorsOpen(v => !v)} aria-expanded={indepColorsOpen} title={indepColorsOpen ? 'Hide this chart’s own color controls' : 'Show this chart’s own color controls'} className="w-full flex items-center justify-between gap-2 text-[10px] uppercase tracking-wide font-bold text-amber-500 dark:text-amber-400 hover:text-amber-600 dark:hover:text-amber-300 transition-colors">
+                                                    <span>This chart’s colors (independent)</span>
+                                                    <svg className={`w-3 h-3 shrink-0 transition-transform ${indepColorsOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                                </button>
+                                                {indepColorsOpen && <div className="mt-2">{breakStyleControls}</div>}
                                             </div>
                                         )}
                                         {metricStyleControls && (
                                             <div className="px-2 py-2 border-b border-slate-100 dark:border-slate-700">
-                                                <div className="text-[10px] uppercase tracking-wide font-bold text-slate-400 dark:text-slate-500 mb-2">Measure styles</div>
-                                                {metricStyleControls}
+                                                <button type="button" onClick={() => setMeasureStylesOpen(v => !v)} aria-expanded={measureStylesOpen} title={measureStylesOpen ? 'Hide the per-measure style controls' : 'Show the per-measure style controls'} className="w-full flex items-center justify-between gap-2 text-[10px] uppercase tracking-wide font-bold text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                                                    <span>Measure styles</span>
+                                                    <svg className={`w-3 h-3 shrink-0 transition-transform ${measureStylesOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                                                </button>
+                                                {measureStylesOpen && <div className="mt-2">{metricStyleControls}</div>}
                                             </div>
                                         )}
                                         {topControls && (
@@ -1768,15 +1812,21 @@
             return String(value);
         };
 
-        const AnalysisTable = ({ title, rows, columns, emptyText, onDownload }) => (
+        const AnalysisTable = ({ title, rows, columns, emptyText, onDownload, isOpen = true, onToggle }) => (
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mt-10 transition-colors duration-200">
-                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex justify-between items-center gap-4">
-                    <h3 className="font-bold text-slate-800 dark:text-slate-100 text-lg">{title}</h3>
-                    <button onClick={onDownload} disabled={!rows.length} className="flex items-center text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 rounded transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed">
-                        <DownloadIcon /> Download Excel
+                <div className={`px-6 ${isOpen ? 'py-4 border-b border-slate-100 dark:border-slate-700' : 'py-3'} bg-slate-50 dark:bg-slate-900/50 flex justify-between items-center gap-4`}>
+                    <button type="button" onClick={onToggle} title={isOpen ? 'Collapse this table' : 'Expand this table'} className="flex-1 min-w-0 flex items-center gap-2.5 text-left">
+                        <svg className={`w-4 h-4 shrink-0 text-slate-400 dark:text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
+                        <h3 className="font-bold text-slate-800 dark:text-slate-100 text-lg truncate">{title}</h3>
+                        {!isOpen && <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 shrink-0">{rows.length} row{rows.length === 1 ? '' : 's'}</span>}
                     </button>
+                    {isOpen && (
+                        <button onClick={onDownload} disabled={!rows.length} className="flex items-center text-sm bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-4 py-2 rounded transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed shrink-0">
+                            <DownloadIcon /> Download Excel
+                        </button>
+                    )}
                 </div>
-                <div className="overflow-x-auto">
+                {isOpen && <div className="overflow-x-auto">
                     <table className="w-full text-sm text-left text-slate-700 dark:text-slate-300">
                         <thead className="text-sm text-slate-500 dark:text-slate-400 uppercase bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
                             <tr>
@@ -1792,7 +1842,7 @@
                             {rows.length === 0 && <tr><td colSpan={columns.length} className="px-6 py-6 text-center text-slate-400 dark:text-slate-500 text-base">{emptyText || 'No analysis rows available'}</td></tr>}
                         </tbody>
                     </table>
-                </div>
+                </div>}
             </div>
         );
 
@@ -2330,12 +2380,20 @@
             const [sidebarGraphHeight, setSidebarGraphHeight] = useState(230);
             const [isSidebarSplitResizing, setIsSidebarSplitResizing] = useState(false);
             const [accordionState, setAccordionState] = useState({});
-            const accordionKeys = ['selectionGroups', 'timeline', 'cat', 'quant', 'aliases', 'catAliases', 'layout', 'styling', 'thirdFieldStyling'];
+            const accordionKeys = ['selectionGroups', 'timeline', 'cat', 'quant', 'aliases', 'catAliases', 'layout', 'seriesTheme', 'styling', 'metricStyling', 'thirdFieldStyling'];
             // Keys stored in accordionState that are NOT collapsible accordions (layout prefs) - never blanked.
-            const NON_ACCORDION_KEYS = new Set(['sidebarOrder']);
-            const collapseAllAccordions = () => {
-                setAccordionState(prev => { const p = prev || {}; const out = {}; [...new Set([...accordionKeys, ...Object.keys(p)])].forEach(key => { out[key] = NON_ACCORDION_KEYS.has(key) ? p[key] : false; }); return out; });
+            const NON_ACCORDION_KEYS = new Set(['sidebarOrder', 'appearanceOrder']);
+            // Sub-section accordions default open on the Filters tab and closed on the Appearance tab.
+            const ACCORDION_DEFAULTS = { selectionGroups: true, timeline: true, cat: true, quant: true };
+            const anyAccordionOpen = accordionKeys.some(k => (accordionState[k] ?? ACCORDION_DEFAULTS[k] ?? false));
+            // Group keys (grp_*) are the three sidebar groups and summary_* the main-area Analysis
+            // tables - neither is a sidebar sub-section accordion, so leave them alone here
+            // (collapsing grp_settings would hide the very button that triggered it).
+            const setAllAccordions = (open) => {
+                setAccordionState(prev => { const p = prev || {}; const out = {}; [...new Set([...accordionKeys, ...Object.keys(p)])].forEach(key => { out[key] = (NON_ACCORDION_KEYS.has(key) || key.startsWith('grp_') || key.startsWith('summary_')) ? p[key] : open; }); return out; });
             };
+            const collapseAllAccordions = () => setAllAccordions(false);
+            const expandAllAccordions = () => setAllAccordions(true);
             const [dragSection, setDragSection] = useState(null);
             const SIDEBAR_SECTIONS = ['dataset', 'graphs', 'settings'];
             const sidebarOrder = (Array.isArray(accordionState['sidebarOrder']) && SIDEBAR_SECTIONS.every(k => accordionState['sidebarOrder'].includes(k))) ? accordionState['sidebarOrder'] : SIDEBAR_SECTIONS;
@@ -2349,6 +2407,72 @@
                 setAccordionState(p => ({ ...p, sidebarOrder: next }));
             };
             const sectionDnd = (key) => ({ onDragOver: (e) => { if (dragSection) e.preventDefault(); }, onDrop: (e) => { e.preventDefault(); moveSection(dragSection, key); setDragSection(null); } });
+            const SIDEBAR_GROUP_KEYS = ['grp_dataset', 'grp_graphs', 'grp_settings'];
+            const toggleAllSidebarGroups = () => {
+                setAccordionState(prev => {
+                    const p = prev || {};
+                    const anyOpen = SIDEBAR_GROUP_KEYS.some(k => (p[k] ?? true));
+                    const next = { ...p };
+                    SIDEBAR_GROUP_KEYS.forEach(k => { next[k] = !anyOpen; });
+                    return next;
+                });
+            };
+            // Drag-reorder for the sub-sections of the Appearance tab (mirrors the sidebar-section DnD).
+            const [dragAcc, setDragAcc] = useState(null);
+            const APPEARANCE_SECTIONS = ['aliases', 'catAliases', 'layout', 'seriesTheme', 'styling', 'metricStyling', 'thirdFieldStyling'];
+            const appearanceOrder = (Array.isArray(accordionState['appearanceOrder']) && APPEARANCE_SECTIONS.every(k => accordionState['appearanceOrder'].includes(k))) ? accordionState['appearanceOrder'] : APPEARANCE_SECTIONS;
+            const moveAccSection = (dragKey, targetKey) => {
+                if (!dragKey || dragKey === targetKey || !APPEARANCE_SECTIONS.includes(targetKey)) return;
+                const arr = appearanceOrder.filter(k => APPEARANCE_SECTIONS.includes(k));
+                const from = arr.indexOf(dragKey), to = arr.indexOf(targetKey);
+                if (from < 0 || to < 0) return;
+                const next = [...arr]; next.splice(from, 1); next.splice(to, 0, dragKey);
+                setAccordionState(p => ({ ...p, appearanceOrder: next }));
+            };
+            const accSectionProps = (key) => ({
+                style: { order: appearanceOrder.indexOf(key) < 0 ? 9 : appearanceOrder.indexOf(key) },
+                onDragOver: (e) => { if (dragAcc) e.preventDefault(); },
+                onDrop: (e) => { e.preventDefault(); moveAccSection(dragAcc, key); setDragAcc(null); },
+                className: dragAcc === key ? 'opacity-50' : (dragAcc ? 'border-dashed border-blue-300 dark:border-blue-600' : ''),
+            });
+            const accSectionGrip = (key) => ({ onDragStart: () => setDragAcc(key), onDragEnd: () => setDragAcc(null) });
+            // Analysis tables (below each chart family) collapse per family, persisted in accordionState.
+            const analysisTableProps = (fam) => ({
+                isOpen: accordionState[`summary_${fam}`] ?? true,
+                onToggle: () => setAccordionState(p => ({ ...p, [`summary_${fam}`]: !(p[`summary_${fam}`] ?? true) })),
+            });
+            // Present mode: one click strips the workspace to just the charts (sidebar hidden, chart
+            // controls collapsed, analysis tables folded). Exiting restores exactly what was showing.
+            const [presentMode, setPresentMode] = useState(false);
+            const presentPrevRef = useRef(null);
+            const togglePresentMode = () => {
+                if (!presentMode) {
+                    presentPrevRef.current = {
+                        sidebarVisible,
+                        controlsCollapsed: !!chartConfig.controlsCollapsed,
+                        summaries: Object.fromEntries(['rel', 'dist', 'comp', 'time'].map(f => [f, accordionState[`summary_${f}`] ?? true])),
+                    };
+                    setSidebarVisible(false);
+                    setChartConfig(p => ({ ...p, controlsCollapsed: true }));
+                    setAccordionState(p => ({ ...p, summary_rel: false, summary_dist: false, summary_comp: false, summary_time: false }));
+                    setPresentMode(true);
+                } else {
+                    const prev = presentPrevRef.current;
+                    if (prev) {
+                        setSidebarVisible(prev.sidebarVisible);
+                        setChartConfig(p => ({ ...p, controlsCollapsed: prev.controlsCollapsed }));
+                        setAccordionState(p => ({ ...p, summary_rel: prev.summaries.rel, summary_dist: prev.summaries.dist, summary_comp: prev.summaries.comp, summary_time: prev.summaries.time }));
+                    }
+                    presentPrevRef.current = null;
+                    setPresentMode(false);
+                }
+            };
+            useEffect(() => {
+                if (!presentMode) return;
+                const onKey = (e) => { if (e.key === 'Escape') togglePresentMode(); };
+                window.addEventListener('keydown', onKey);
+                return () => window.removeEventListener('keydown', onKey);
+            }, [presentMode, sidebarVisible, chartConfig.controlsCollapsed, accordionState]);
             const sidebarTabLabel = sidebarTab === 'columns' ? 'Fields' : sidebarTab;
 
             const startResizing = useCallback((e) => { e.preventDefault(); setIsResizing(true); }, []);
@@ -2967,6 +3091,13 @@
                 const ids = extractSelectionRowIds(eventData);
                 setSelectedRowIds(ids);
                 setLastSelectionSource(chartLabel || 'Chart selection');
+                // Reveal the selection where it lands: open the Filters tab and the Brush Selection
+                // accordion so a fresh brush is immediately visible without hunting in the sidebar.
+                // (The sidebar itself is left alone if the user hid it, e.g. in Present mode.)
+                if (ids.length) {
+                    setSidebarTab('filters');
+                    setAccordionState(p => ({ ...p, selectionGroups: true, grp_settings: true }));
+                }
                 // Default the selection name to something descriptive: how many points and the
                 // value window they cover (per the brushed chart's axes), e.g.
                 // "24 pts · Bill Length 39-45 · Flipper Length 190-210". The user can still rename.
@@ -3467,9 +3598,9 @@
                 time: [['timeseries', 'Time series'], ['control', 'Control chart']],
             };
             // Renders the "add a chart of type X" picker (also serves as the empty state).
-            const addChartControl = (family, setter, empty) => (
-                <div className="mt-8 flex flex-col items-center justify-center gap-2">
-                    {empty && <div className="text-sm text-slate-400 dark:text-slate-500 italic">No charts here yet.</div>}
+            const addChartControl = (family, setter, empty) => {
+                const famLabel = { rel: 'relationship', dist: 'distribution', comp: 'comparison', time: 'time' }[family] || '';
+                const picker = (
                     <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">Add a chart:</span>
                         <select value="" onChange={e => { if (!e.target.value) return; const c = buildDefaultChart(family); c.type = e.target.value; setter(prev => [...(prev || []), c]); }} className="text-sm border-2 border-dashed border-blue-300 dark:border-blue-700 rounded-lg px-4 py-2.5 font-semibold text-blue-600 dark:text-blue-400 bg-blue-50/40 dark:bg-blue-900/10 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer outline-none">
@@ -3477,8 +3608,23 @@
                             {((showEmptyFamilies ? ADD_TYPES_ALL : ADD_TYPES)[family] || []).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
                         </select>
                     </div>
-                </div>
-            );
+                );
+                if (!empty) return <div className="mt-8 flex flex-col items-center justify-center gap-2">{picker}</div>;
+                return (
+                    <div className="mt-8 flex justify-center">
+                        <div className="w-full max-w-lg text-center border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl bg-white/60 dark:bg-slate-800/40 px-8 py-10 flex flex-col items-center gap-4">
+                            <div className="w-14 h-14 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-500 dark:text-blue-400 flex items-center justify-center">
+                                <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M3 3v18h18" /><rect x="7" y="12" width="3" height="6" rx="0.5" /><rect x="12" y="8" width="3" height="10" rx="0.5" /><rect x="17" y="5" width="3" height="13" rx="0.5" /></svg>
+                            </div>
+                            <div>
+                                <div className="font-bold text-slate-700 dark:text-slate-200">No {famLabel} charts yet</div>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-sm">Pick a type below to build one - or copy the <b>AI context</b> (top toolbar), hand it to your assistant, and import a ready-made analysis.</p>
+                            </div>
+                            {picker}
+                        </div>
+                    </div>
+                );
+            };
 
             // ── AI context export + spec import ──────────────────────────────────
             const sampleDistinct = (col, n) => {
@@ -3688,7 +3834,7 @@
                         '        2. Only in "Bill Length vs Flipper Length by species"',
                         '  Map choice 1 to NO "ref" = global; choice 2 to the chart\'s "ref" = that chart only, which becomes',
                         '  independently styled. Charts already marked "independently styled" keep their own colors.',
-                        '- Colors are hex like "#1f77b4". Write any text (titles, aliases) in American English.', '',
+                        '- Colors are hex like "#2a78d6". Write any text (titles, aliases) in American English.', '',
                         '## Spec version', `"${CLUES_AI_SPEC_VERSION}"`, '',
                         restyleSubset ? `## Charts the user SELECTED to restyle - ${picked.length} of ${allSessionCharts.length} (apply changes to THESE ONLY, each via its "ref")` : (picked.length ? '## Charts in this session (the user names one by its title; reference it by "ref")' : '## Charts in this session'),
                         ...chartLines,
@@ -3935,7 +4081,7 @@ with the analysis defaults, this block wins.
                     if (!d || typeof d !== 'object') { errors.push(`${at}: not an object.`); return; }
                     const def = CLUES_AI_STYLE_OPS[d.op];
                     if (!def) { errors.push(`${at}: unknown op "${d.op}". Allowed: ${Object.keys(CLUES_AI_STYLE_OPS).join(', ')}.`); return; }
-                    def.params.forEach(p => { if (p === 'reverse' || p === 'min' || p === 'max' || p === 'field') return; if (d.op === 'title_style') return; /* all title_style fields optional */ if (d.op === 'chart_subtitle' && p === 'text') return; /* empty text removes the subtitle */ if (d.op === 'chart_metrics' && p === 'primary_axis') return; /* primary_axis optional (defaults left) */ if (def.scope === 'series' && p === 'column') return; /* column optional for series (applier keys on category; ungrouped charts have none) */ if (d[p] === undefined || d[p] === null || d[p] === '') errors.push(`${at} (${d.op}): missing "${p}".`); });
+                    def.params.forEach(p => { if (p === 'reverse' || p === 'min' || p === 'max' || p === 'field' || p === 'x' || p === 'y') return; if (d.op === 'title_style') return; /* all title_style fields optional */ if (d.op === 'chart_subtitle' && p === 'text') return; /* empty text removes the subtitle */ if (d.op === 'chart_metrics' && p !== 'ref' && p !== 'metrics') return; /* primary_* / primary optional */ if (d.op === 'theme_slot' && p !== 'slot') return; /* attributes optional - pass what you change */ if (d.op === 'layout_style') return; /* all attributes optional */ if (d.op === 'field_format' && p !== 'column') return; if (d.op === 'chart_display' && p !== 'ref') return; if (d.op === 'style_field' && p !== 'column' && p !== 'value') return; if (d.op === 'chart_map' && p !== 'ref') return; if (def.scope === 'series' && p === 'column') return; /* column optional for series (applier keys on category; ungrouped charts have none) */ if (d[p] === undefined || d[p] === null || d[p] === '') errors.push(`${at} (${d.op}): missing "${p}".`); });
                     if ((def.scope === 'field' || def.scope === 'series') && d.column && !colPublicType(d.column)) errors.push(`${at}: "${d.column}" is not a field in this dataset.`);
                     if (def.scope === 'chart' && d.ref && !styleChartIds.has(d.ref)) errors.push(`${at}: ref "${d.ref}" is not a chart in this session - reference one from "Charts already in this session" (include it via the Copy-AI-context picker).`);
                     if (def.scope === 'series' && d.ref && !styleChartIds.has(d.ref)) errors.push(`${at}: ref "${d.ref}" is not a chart in this session (a series op's optional "ref" limits the change to that one chart).`);
@@ -3948,7 +4094,8 @@ with the analysis defaults, this block wins.
                     if (d.op === 'chart_axis' && d.axis && !['x', 'y'].includes(String(d.axis))) errors.push(`${at}: "axis" must be "x" or "y".`);
                     if (d.op === 'chart_size' && d.field && !(colPublicType(d.field) === 'quantitative' || numericCapableCols.has(d.field))) errors.push(`${at}: size field "${d.field}" must be a quantitative (or numeric-coded) column.`);
                     if (d.op === 'chart_colorscale' && d.colorscale && !COLORSCALES.includes(String(d.colorscale))) errors.push(`${at}: colorscale "${d.colorscale}" - use one of ${COLORSCALES.join(', ')}.`);
-                    if (d.op === 'chart_legend' && d.position && !['top', 'bottom', 'left', 'right'].includes(String(d.position))) errors.push(`${at}: "position" must be top, bottom, left, or right.`);
+                    if (d.op === 'chart_legend' && d.position && !['top', 'bottom', 'left', 'right', 'inside', 'custom'].includes(String(d.position))) errors.push(`${at}: "position" must be top, bottom, left, right, inside, or custom.`);
+                    if (d.op === 'chart_legend') ['x', 'y'].forEach(k => { if (d[k] != null && d[k] !== '' && (isNaN(+d[k]) || +d[k] < 0 || +d[k] > 1)) errors.push(`${at}: "${k}" must be between 0 and 1 (paper coordinates).`); });
                     if (d.op === 'chart_columns' && d.columns != null && ![1, 2].includes(Number(d.columns))) errors.push(`${at}: "columns" must be 1 or 2.`);
                     if (d.op === 'title_style' && d.size != null && d.size !== '' && (isNaN(+d.size) || +d.size <= 0)) errors.push(`${at}: title "size" must be a positive number of pixels.`);
                     if (d.op === 'title_style' && d.position && !['top', 'bottom', 'left', 'right'].includes(String(d.position))) errors.push(`${at}: title "position" must be top, bottom, left, or right.`);
@@ -3959,11 +4106,60 @@ with the analysis defaults, this block wins.
                         if (d.ref && styleTypeById.has(d.ref) && styleTypeById.get(d.ref) !== 'timeseries') errors.push(`${at}: chart_metrics only applies to a time-series chart (ref "${d.ref}" is a ${styleTypeById.get(d.ref)}). Control charts stay single-measure.`);
                         if (d.primary_axis != null && d.primary_axis !== '' && !['left', 'right'].includes(String(d.primary_axis))) errors.push(`${at}: chart_metrics "primary_axis" must be "left" or "right".`);
                         if (d.metrics != null && !Array.isArray(d.metrics)) errors.push(`${at}: chart_metrics "metrics" must be an array of { field, axis }.`);
+                        const checkMetricStyle = (mm, label) => {
+                            ['opacity', 'fill'].forEach(k => { if (mm[k] != null && mm[k] !== '' && (isNaN(+mm[k]) || +mm[k] < 0 || +mm[k] > 1)) errors.push(`${at}: ${label} "${k}" must be between 0 and 1.`); });
+                            if (mm.size != null && mm.size !== '' && (isNaN(+mm.size) || +mm.size <= 0)) errors.push(`${at}: ${label} "size" must be a positive number (1 = default).`);
+                            if (mm.width != null && mm.width !== '' && (isNaN(+mm.width) || +mm.width < 0)) errors.push(`${at}: ${label} "width" must be non-negative.`);
+                            if (mm.shape && !SERIES_SYMBOLS.includes(String(mm.shape))) errors.push(`${at}: ${label} shape "${mm.shape}" - use one of ${SERIES_SYMBOLS.join(', ')}.`);
+                            if (mm.dash && !['solid', 'dot', 'dash', 'longdash', 'dashdot', 'longdashdot'].includes(String(mm.dash))) errors.push(`${at}: ${label} dash must be one of solid, dot, dash, longdash, dashdot, longdashdot.`);
+                        };
                         (Array.isArray(d.metrics) ? d.metrics : []).forEach((mm, mi) => {
                             if (!mm || typeof mm !== 'object') { errors.push(`${at}: metrics[${mi}] must be an object { field, axis }.`); return; }
                             if (!mm.field || !(colPublicType(mm.field) === 'quantitative' || numericCapableCols.has(mm.field))) errors.push(`${at}: metrics[${mi}] "field" ("${mm.field}") must be a quantitative (or numeric-coded) column.`);
                             if (mm.axis != null && mm.axis !== '' && !['left', 'right'].includes(String(mm.axis))) errors.push(`${at}: metrics[${mi}] "axis" must be "left" or "right".`);
+                            checkMetricStyle(mm, `metrics[${mi}]`);
                         });
+                        if (d.primary != null) { if (typeof d.primary !== 'object' || Array.isArray(d.primary)) errors.push(`${at}: "primary" must be an object of style attributes for the base metric.`); else checkMetricStyle(d.primary, '"primary"'); }
+                    }
+                    if (d.op === 'theme_slot') {
+                        if (d.slot == null || isNaN(+d.slot) || +d.slot < 1 || +d.slot > 10) errors.push(`${at}: theme_slot "slot" must be 1..10.`);
+                        if (d.shape && !SERIES_SYMBOLS.includes(String(d.shape))) errors.push(`${at}: shape "${d.shape}" - use one of ${SERIES_SYMBOLS.join(', ')}.`);
+                        ['opacity', 'fill'].forEach(k => { if (d[k] != null && d[k] !== '' && (isNaN(+d[k]) || +d[k] < 0 || +d[k] > 1)) errors.push(`${at}: "${k}" must be between 0 and 1.`); });
+                        if (d.size != null && d.size !== '' && (isNaN(+d.size) || +d.size <= 0)) errors.push(`${at}: "size" must be a positive number (1 = default).`);
+                        if (d.width != null && d.width !== '' && (isNaN(+d.width) || +d.width < 0)) errors.push(`${at}: "width" must be non-negative.`);
+                        if (!['color', 'opacity', 'fill', 'width', 'size', 'shape'].some(k => d[k] != null && d[k] !== '')) errors.push(`${at}: theme_slot needs at least one attribute to change.`);
+                    }
+                    if (d.op === 'layout_style') {
+                        if (d.font && !['sans', 'serif', 'mono'].includes(String(d.font))) errors.push(`${at}: "font" must be sans, serif, or mono.`);
+                        if (d.legend_position && !['top', 'bottom', 'left', 'right', 'inside'].includes(String(d.legend_position))) errors.push(`${at}: "legend_position" must be top, bottom, left, right, or inside.`);
+                        ['legend_size', 'axis_size'].forEach(k => { if (d[k] != null && d[k] !== '' && (isNaN(+d[k]) || +d[k] < 6 || +d[k] > 24)) errors.push(`${at}: "${k}" must be 6..24 (px).`); });
+                        if (d.tick_angle != null && d.tick_angle !== '' && !['auto', '0', '-45', '-90'].includes(String(d.tick_angle))) errors.push(`${at}: "tick_angle" must be auto, 0, -45, or -90.`);
+                        if (!['font', 'legend_position', 'legend_size', 'axis_size', 'tick_angle', 'minor_grid', 'dense_labels'].some(k => d[k] != null && d[k] !== '')) errors.push(`${at}: layout_style needs at least one attribute to change.`);
+                    }
+                    if (d.op === 'field_format') {
+                        const ft = d.column ? colPublicType(d.column) : null;
+                        if (d.date_format != null && d.date_format !== '' && ft && ft !== 'temporal') errors.push(`${at}: "date_format" only applies to a date column ("${d.column}" is ${ft}).`);
+                        if (d.decimals != null && d.decimals !== '' && (isNaN(+d.decimals) || +d.decimals < 0 || +d.decimals > 8)) errors.push(`${at}: "decimals" must be 0..8.`);
+                        if (!['decimals', 'thousands', 'prefix', 'suffix', 'date_format'].some(k => d[k] !== undefined)) errors.push(`${at}: field_format needs at least one attribute.`);
+                    }
+                    if (d.op === 'chart_display') {
+                        const flags = ['title', 'labels', 'legend', 'style_legend', 'trendline', 'formula'];
+                        if (!flags.some(k => d[k] != null)) errors.push(`${at}: chart_display needs at least one of ${flags.join(', ')}.`);
+                        flags.forEach(k => { if (d[k] != null && typeof d[k] !== 'boolean') errors.push(`${at}: "${k}" must be true or false.`); });
+                    }
+                    if (d.op === 'style_field') {
+                        if (d.column && colPublicType(d.column) && colPublicType(d.column) !== 'categorical') errors.push(`${at}: style_field needs a categorical column ("${d.column}" is ${colPublicType(d.column)}).`);
+                        if (d.weight && !['bold', 'normal', 'light'].includes(String(d.weight))) errors.push(`${at}: "weight" must be bold, normal, or light.`);
+                        ['opacity', 'fill'].forEach(k => { if (d[k] != null && d[k] !== '' && (isNaN(+d[k]) || +d[k] < 0 || +d[k] > 1)) errors.push(`${at}: "${k}" must be between 0 and 1.`); });
+                        if (d.width != null && d.width !== '' && (isNaN(+d.width) || +d.width <= 0)) errors.push(`${at}: "width" must be a positive number of pixels.`);
+                    }
+                    if (d.op === 'chart_map') {
+                        if (d.ref && styleTypeById.has(d.ref) && !['map', 'choropleth'].includes(styleTypeById.get(d.ref))) errors.push(`${at}: chart_map only applies to a map chart (ref "${d.ref}" is a ${styleTypeById.get(d.ref)}).`);
+                        if (d.basemap && !['streets', 'light', 'dark', 'outline'].includes(String(d.basemap))) errors.push(`${at}: "basemap" must be streets, light, dark, or outline.`);
+                        if (d.opacity != null && d.opacity !== '' && (isNaN(+d.opacity) || +d.opacity < 0 || +d.opacity > 1)) errors.push(`${at}: "opacity" must be between 0 and 1.`);
+                        if (d.zoom_scale != null && typeof d.zoom_scale !== 'boolean') errors.push(`${at}: "zoom_scale" must be true or false.`);
+                        if (d.color_field && !(colPublicType(d.color_field) === 'quantitative' || numericCapableCols.has(d.color_field))) errors.push(`${at}: "color_field" ("${d.color_field}") must be a quantitative (or numeric-coded) column.`);
+                        if (d.label && !colPublicType(d.label)) errors.push(`${at}: "label" ("${d.label}") is not a field in this dataset.`);
                     }
                 });
                 return errors;
@@ -4022,8 +4218,11 @@ with the analysis defaults, this block wins.
                 const quantAliases = { ...(merged.quantAliases || {}) };
                 const catAliases = { ...(merged.catAliases || {}) };
                 let chartConfig = { ...(merged.chartConfig || {}) };
+                const seriesTheme = (Array.isArray(merged.seriesTheme) && merged.seriesTheme.length ? merged.seriesTheme : makeDefaultSeriesTheme()).map(s => ({ ...(s || {}) }));
+                const fieldFormats = { ...(merged.fieldFormats || {}) };
+                const fieldStyle = { ...(merged.fieldStyleConfig || {}) };
                 const arrays = { rel: [...(merged.relCharts || [])], dist: [...(merged.distCharts || [])], comp: [...(merged.compCharts || [])], time: [...(merged.timeCharts || [])] };
-                const undo = { seriesConfig: {}, quantAliases: {}, catAliases: {}, chartConfig: {}, charts: {} };
+                const undo = { seriesConfig: {}, quantAliases: {}, catAliases: {}, chartConfig: {}, charts: {}, seriesTheme: {}, fieldFormats: {}, fieldStyle: {} };
                 let applied = 0;
                 const nn = (v) => v === undefined ? null : v; // keep undo JSON-serializable (autosave)
                 const findChart = (ref) => { for (const fam of ['rel', 'dist', 'comp', 'time']) { const idx = arrays[fam].findIndex(c => c.id === ref); if (idx >= 0) return { fam, idx }; } return null; };
@@ -4112,7 +4311,19 @@ with the analysis defaults, this block wins.
                             }
                             case 'chart_size': if (patchChart(d.ref, { size: d.field ? String(d.field) : '' }, ['size'])) applied++; break;
                             case 'chart_colorscale': if (patchChart(d.ref, { colorscale: String(d.colorscale), reverseScale: !!d.reverse }, ['colorscale', 'reverseScale'])) applied++; break;
-                            case 'chart_legend': if (patchChart(d.ref, { legendPosition: String(d.position) }, ['legendPosition'])) applied++; break;
+                            case 'chart_legend': {
+                                const pos = String(d.position);
+                                const patch = { legendPosition: pos };
+                                const fields = ['legendPosition'];
+                                if (pos === 'custom' || ((pos === 'inside') && (d.x != null || d.y != null))) {
+                                    const clamp01 = (v, dflt) => (v == null || v === '' || isNaN(+v)) ? dflt : Math.max(0, Math.min(1, Number(v)));
+                                    const x = clamp01(d.x, 0.98), y = clamp01(d.y, 0.98);
+                                    patch.legendPosition = 'custom';
+                                    patch.legendCustom = { x, y, xanchor: x < 0.5 ? 'left' : 'right', yanchor: y < 0.5 ? 'bottom' : 'top', orientation: 'v' };
+                                    fields.push('legendCustom');
+                                }
+                                if (patchChart(d.ref, patch, fields)) applied++; break;
+                            }
                             case 'chart_columns': if (!('chartColumns' in undo.chartConfig)) undo.chartConfig.chartColumns = nn(chartConfig.chartColumns); chartConfig = { ...chartConfig, chartColumns: Number(d.columns) === 2 ? 2 : 1 }; applied++; break;
                             case 'title_style': {
                                 const patch = {};
@@ -4136,18 +4347,119 @@ with the analysis defaults, this block wins.
                             }
                             case 'chart_metrics': {
                                 const loc = findChart(d.ref); if (!loc) break;
-                                if (arrays[loc.fam][loc.idx].type !== 'timeseries') break; // control charts stay single-measure
-                                const patch = { metrics: (Array.isArray(d.metrics) ? d.metrics : []).filter(mm => mm && mm.field).map(mm => ({ key: String(mm.field), axis: mm.axis === 'right' ? 'right' : 'left', ...(mm.color ? { color: String(mm.color) } : {}) })) };
+                                const c0 = arrays[loc.fam][loc.idx];
+                                if (c0.type !== 'timeseries') break; // control charts stay single-measure
+                                // Optional per-measure style keys map onto the same metricStyle store the UI editor uses.
+                                const metricStyleOf = (mm) => {
+                                    const s = {};
+                                    if (mm.color) s.color = String(mm.color);
+                                    if (mm.opacity != null && mm.opacity !== '') s.opacity = Math.max(0, Math.min(1, Number(mm.opacity)));
+                                    if (mm.fill != null && mm.fill !== '') s.fill = Math.max(0, Math.min(1, Number(mm.fill)));
+                                    if (mm.size != null && mm.size !== '') s.sizeMult = Math.max(0.1, Math.min(8, Number(mm.size)));
+                                    if (mm.width != null && mm.width !== '') s.width = Math.max(0, Number(mm.width));
+                                    if (mm.shape) s.symbol = String(mm.shape);
+                                    if (mm.dash) s.dash = String(mm.dash);
+                                    if (mm.alias != null && String(mm.alias).trim() !== '') s.alias = String(mm.alias);
+                                    return s;
+                                };
+                                const list = (Array.isArray(d.metrics) ? d.metrics : []).filter(mm => mm && mm.field);
+                                const patch = { metrics: list.map(mm => ({ key: String(mm.field), axis: mm.axis === 'right' ? 'right' : 'left', ...(mm.color ? { color: String(mm.color) } : {}) })) };
                                 if (d.primary_axis != null && d.primary_axis !== '') patch.quantAxis = String(d.primary_axis) === 'right' ? 'right' : 'left';
                                 if (d.primary_color != null && d.primary_color !== '') patch.quantColor = String(d.primary_color);
+                                const ms = { ...(c0.metricStyle || {}) };
+                                let msTouched = false;
+                                list.forEach(mm => { const s = metricStyleOf(mm); if (Object.keys(s).length) { ms[String(mm.field)] = { ...(ms[String(mm.field)] || {}), ...s }; msTouched = true; } });
+                                if (d.primary && typeof d.primary === 'object' && c0.quantKey) { const s = metricStyleOf(d.primary); if (Object.keys(s).length) { ms[c0.quantKey] = { ...(ms[c0.quantKey] || {}), ...s }; msTouched = true; } }
+                                if (msTouched) patch.metricStyle = ms;
                                 if (patchChart(d.ref, patch, Object.keys(patch))) applied++;
+                                break;
+                            }
+                            case 'theme_slot': {
+                                const idx = Math.floor(Number(d.slot)) - 1;
+                                if (!(idx >= 0 && idx < seriesTheme.length)) break;
+                                const patch = {};
+                                if (d.color) patch.color = String(d.color);
+                                if (d.opacity != null && d.opacity !== '') patch.opacity = Math.max(0, Math.min(1, Number(d.opacity)));
+                                if (d.fill != null && d.fill !== '') patch.fill = Math.max(0, Math.min(1, Number(d.fill)));
+                                if (d.width != null && d.width !== '') patch.width = Math.max(0, Number(d.width));
+                                if (d.size != null && d.size !== '') patch.sizeMult = Math.max(0.1, Math.min(8, Number(d.size)));
+                                if (d.shape) patch.symbol = String(d.shape);
+                                if (!Object.keys(patch).length) break;
+                                if (!(idx in undo.seriesTheme)) undo.seriesTheme[idx] = { ...seriesTheme[idx] };
+                                seriesTheme[idx] = { ...seriesTheme[idx], ...patch };
+                                applied++; break;
+                            }
+                            case 'layout_style': {
+                                const patch = {};
+                                if (d.font) { const f = ({ sans: 'Arial, sans-serif', serif: 'Times New Roman, serif', mono: 'Courier New, monospace' })[String(d.font)]; if (f) patch.fontFamily = f; }
+                                if (d.legend_position) { const pos = String(d.legend_position); patch.legendPosition = pos; patch.legendOrientation = (pos === 'left' || pos === 'right' || pos === 'inside') ? 'v' : 'h'; }
+                                if (d.legend_size != null && d.legend_size !== '') patch.legendFontSize = Math.max(6, Math.min(24, Number(d.legend_size)));
+                                if (d.axis_size != null && d.axis_size !== '') patch.axisFontSize = Math.max(6, Math.min(24, Number(d.axis_size)));
+                                if (d.tick_angle != null && d.tick_angle !== '') patch.axisTickAngle = String(d.tick_angle);
+                                if (d.minor_grid != null) patch.showMinorGrids = !!d.minor_grid;
+                                if (d.dense_labels != null) patch.denseGridLabels = !!d.dense_labels;
+                                if (!Object.keys(patch).length) break;
+                                Object.keys(patch).forEach(k => { if (!(k in undo.chartConfig)) undo.chartConfig[k] = nn(chartConfig[k]); });
+                                chartConfig = { ...chartConfig, ...patch };
+                                applied++; break;
+                            }
+                            case 'field_format': {
+                                const col = String(d.column || ''); if (!col) break;
+                                if (!(col in undo.fieldFormats)) undo.fieldFormats[col] = nn(fieldFormats[col] ? { ...fieldFormats[col] } : null);
+                                const cur = { ...(fieldFormats[col] || {}) };
+                                const setOrClear = (key, val) => { if (val === '' || val === null || val === undefined || val === false) delete cur[key]; else cur[key] = val; };
+                                if ('decimals' in d) setOrClear('decimals', (d.decimals === '' || d.decimals == null) ? '' : Math.max(0, Math.min(8, Math.floor(Number(d.decimals)))));
+                                if ('thousands' in d) setOrClear('thousands', !!d.thousands);
+                                if ('prefix' in d) setOrClear('prefix', d.prefix == null ? '' : String(d.prefix));
+                                if ('suffix' in d) setOrClear('suffix', d.suffix == null ? '' : String(d.suffix));
+                                if ('date_format' in d) setOrClear('dateFormat', d.date_format == null ? '' : String(d.date_format));
+                                if (Object.keys(cur).length) fieldFormats[col] = cur; else delete fieldFormats[col];
+                                applied++; break;
+                            }
+                            case 'chart_display': {
+                                const patch = {};
+                                if (d.title != null) patch.showTitle = !!d.title;
+                                if (d.labels != null) patch.showLabels = !!d.labels;
+                                if (d.legend != null) patch.showLegend = !!d.legend;
+                                if (d.style_legend != null) patch.showStyleLegend = !!d.style_legend;
+                                if (d.trendline != null) patch.showTrendline = !!d.trendline;
+                                if (d.formula != null) patch.showTrendFormula = !!d.formula;
+                                if (Object.keys(patch).length && patchChart(d.ref, patch, Object.keys(patch))) applied++;
+                                break;
+                            }
+                            case 'style_field': {
+                                const col = String(d.column || ''), val = String(d.value ?? ''); if (!col || val === '') break;
+                                if (!(col in undo.fieldStyle)) undo.fieldStyle[col] = nn(fieldStyle[col] ? JSON.parse(JSON.stringify(fieldStyle[col])) : null);
+                                const colCfg = { ...(fieldStyle[col] || {}) };
+                                const cur = { ...(colCfg[val] || {}) };
+                                if (d.weight) cur.weight = String(d.weight);
+                                if (d.width != null && d.width !== '') cur.width = Math.max(0.1, Number(d.width));
+                                if (d.opacity != null && d.opacity !== '') cur.opacity = Math.max(0, Math.min(1, Number(d.opacity)));
+                                if (d.fill != null && d.fill !== '') cur.fill = Math.max(0, Math.min(1, Number(d.fill)));
+                                if (d.alias != null) cur.alias = String(d.alias);
+                                colCfg[val] = cur; fieldStyle[col] = colCfg;
+                                applied++; break;
+                            }
+                            case 'chart_map': {
+                                const loc = findChart(d.ref); if (!loc) break;
+                                const c0 = arrays[loc.fam][loc.idx];
+                                if (c0.type !== 'map' && c0.type !== 'choropleth') break;
+                                const patch = {};
+                                if (d.basemap) { const b = String(d.basemap); if (c0.type === 'choropleth') patch.mapBasemap = b; else patch.mapStyle = b; }
+                                if (c0.type === 'map') {
+                                    if (d.label != null) patch.mapLabel = String(d.label);
+                                    if (d.opacity != null && d.opacity !== '') patch.mapOpacity = String(Math.max(0, Math.min(1, Number(d.opacity))));
+                                    if (d.zoom_scale != null) patch.zoomScale = !!d.zoom_scale;
+                                    if (d.color_field != null) patch.colorField = String(d.color_field);
+                                }
+                                if (Object.keys(patch).length && patchChart(d.ref, patch, Object.keys(patch))) applied++;
                                 break;
                             }
                             default: break;
                         }
                     } catch (e) { /* skip a bad directive */ }
                 });
-                return { seriesConfig, quantAliases, catAliases, chartConfig, arrays, undo, applied };
+                return { seriesConfig, quantAliases, catAliases, chartConfig, seriesTheme, fieldFormats, fieldStyleConfig: fieldStyle, arrays, undo, applied };
             };
             // Undo the styling one AI response applied, restoring exactly the prior values it captured.
             const revertStyling = (rec) => {
@@ -4165,6 +4477,8 @@ with the analysis defaults, this block wins.
                 if (newer > 0 && !window.confirm(`This response has ${newer} newer styling response${newer > 1 ? 's' : ''} applied on top of it, which can't stay once it is reverted. Revert all ${group.length}?`)) return;
                 const ordered = [...group].sort((a, b) => all.indexOf(b) - all.indexOf(a)); // newest -> oldest (oldest applied last, so it wins)
                 let sc = { ...(cur.seriesConfig || {}) }, qa = { ...(cur.quantAliases || {}) }, ca = { ...(cur.catAliases || {}) }, cc = { ...(cur.chartConfig || {}) };
+                const sth = (Array.isArray(cur.seriesTheme) && cur.seriesTheme.length ? cur.seriesTheme : makeDefaultSeriesTheme()).map(s => ({ ...(s || {}) }));
+                let ff = { ...(cur.fieldFormats || {}) }, fsc = { ...(cur.fieldStyleConfig || {}) };
                 const chartPatch = {};
                 ordered.forEach(r => {
                     const u = r.styleUndo || {};
@@ -4172,11 +4486,14 @@ with the analysis defaults, this block wins.
                     Object.entries(u.quantAliases || {}).forEach(([k, v]) => { if (v == null) delete qa[k]; else qa[k] = v; });
                     Object.entries(u.catAliases || {}).forEach(([k, v]) => { if (v == null) delete ca[k]; else ca[k] = v; });
                     cc = { ...cc, ...(u.chartConfig || {}) };
+                    Object.entries(u.seriesTheme || {}).forEach(([i, v]) => { const idx = Number(i); if (v && idx >= 0 && idx < sth.length) sth[idx] = v; });
+                    Object.entries(u.fieldFormats || {}).forEach(([k, v]) => { if (v == null) delete ff[k]; else ff[k] = v; });
+                    Object.entries(u.fieldStyle || {}).forEach(([k, v]) => { if (v == null) delete fsc[k]; else fsc[k] = v; });
                     Object.entries(u.charts || {}).forEach(([id, patch]) => { chartPatch[id] = { ...(chartPatch[id] || {}), ...patch }; });
                 });
                 const revertedIds = new Set(group.map(r => r.id));
                 const restore = (arr) => (arr || []).map(c => chartPatch[c.id] ? { ...c, ...chartPatch[c.id] } : c);
-                restoreState({ ...cur, seriesConfig: sc, quantAliases: qa, catAliases: ca, chartConfig: cc, relCharts: restore(cur.relCharts), distCharts: restore(cur.distCharts), compCharts: restore(cur.compCharts), timeCharts: restore(cur.timeCharts), aiImports: all.map(r => revertedIds.has(r.id) ? { ...r, styleUndo: null, styleCount: 0 } : r) });
+                restoreState({ ...cur, seriesConfig: sc, quantAliases: qa, catAliases: ca, chartConfig: cc, seriesTheme: sth, fieldFormats: ff, fieldStyleConfig: fsc, relCharts: restore(cur.relCharts), distCharts: restore(cur.distCharts), compCharts: restore(cur.compCharts), timeCharts: restore(cur.timeCharts), aiImports: all.map(r => revertedIds.has(r.id) ? { ...r, styleUndo: null, styleCount: 0 } : r) });
                 setSaveToast(group.length > 1 ? `Reverted ${group.length} styling responses.` : 'Reverted this response’s styling.'); setTimeout(() => setSaveToast(''), 4000);
             };
             // Capture the CURRENT look as a styling spec (the reverse of import): series overrides, field
@@ -4207,9 +4524,45 @@ with the analysis defaults, this block wins.
                     const ax = c.axes || {};
                     ['x', 'y'].forEach(axis => { const a = ax[axis]; if (a && ((a.min !== '' && a.min != null) || (a.max !== '' && a.max != null))) styling.push({ op: 'chart_axis', ref: c.id, axis, min: (a.min === '' || a.min == null) ? null : Number(a.min), max: (a.max === '' || a.max == null) ? null : Number(a.max) }); });
                     if (c.colorscale) styling.push({ op: 'chart_colorscale', ref: c.id, colorscale: String(c.colorscale), reverse: !!c.reverseScale });
-                    if (c.legendPosition && ['top', 'bottom', 'left', 'right'].includes(c.legendPosition)) styling.push({ op: 'chart_legend', ref: c.id, position: c.legendPosition });
+                    if (c.legendPosition && ['top', 'bottom', 'left', 'right', 'inside'].includes(c.legendPosition)) styling.push({ op: 'chart_legend', ref: c.id, position: c.legendPosition });
+                    else if (c.legendPosition === 'custom' && c.legendCustom && c.legendCustom.x != null) styling.push({ op: 'chart_legend', ref: c.id, position: 'custom', x: Number(c.legendCustom.x), y: Number(c.legendCustom.y ?? 0.98) });
+                    { // show/hide flags - emit only what was explicitly set on the chart
+                        const disp = {};
+                        if (c.showTitle !== undefined) disp.title = c.showTitle !== false;
+                        if (c.showLabels !== undefined) disp.labels = c.showLabels !== false;
+                        if (c.showLegend !== undefined) disp.legend = c.showLegend !== false;
+                        if (c.showStyleLegend !== undefined) disp.style_legend = c.showStyleLegend !== false;
+                        if (c.showTrendline !== undefined) disp.trendline = c.showTrendline !== false;
+                        if (c.showTrendFormula !== undefined) disp.formula = c.showTrendFormula !== false;
+                        if (Object.keys(disp).length) styling.push({ op: 'chart_display', ref: c.id, ...disp });
+                    }
+                    if (c.type === 'map' || c.type === 'choropleth') {
+                        const mp = {};
+                        if (c.type === 'map' && c.mapStyle) mp.basemap = c.mapStyle;
+                        if (c.type === 'choropleth' && c.mapBasemap) mp.basemap = c.mapBasemap;
+                        if (c.type === 'map') {
+                            if (c.mapLabel !== undefined) mp.label = c.mapLabel;
+                            if (c.mapOpacity != null && c.mapOpacity !== '') mp.opacity = Number(c.mapOpacity);
+                            if (c.zoomScale === false) mp.zoom_scale = false;
+                            if (c.colorField) mp.color_field = c.colorField;
+                        }
+                        if (Object.keys(mp).length) styling.push({ op: 'chart_map', ref: c.id, ...mp });
+                    }
                     if (c.type === 'scatter') { const jj = {}; if (c.jitter === true || c.jitter === false) jj.on = c.jitter; if (c.jitterScale != null && c.jitterScale !== '' && Number(c.jitterScale) !== 1) jj.scale = Number(c.jitterScale); if (Object.keys(jj).length) styling.push({ op: 'chart_jitter', ref: c.id, ...jj }); }
-                    if (c.type === 'timeseries' && Array.isArray(c.metrics) && c.metrics.length) { const mcol = k => (c.metricStyle && c.metricStyle[k] && c.metricStyle[k].color) || null; const pcol = mcol(c.quantKey) || c.quantColor; styling.push({ op: 'chart_metrics', ref: c.id, primary_axis: c.quantAxis === 'right' ? 'right' : 'left', ...(pcol ? { primary_color: pcol } : {}), metrics: c.metrics.filter(m => m && m.key).map(m => { const col = mcol(m.key) || m.color; return { field: m.key, axis: m.axis === 'right' ? 'right' : 'left', ...(col ? { color: col } : {}) }; }) }); }
+                    if (c.type === 'timeseries' && Array.isArray(c.metrics) && c.metrics.length) {
+                        // Full per-measure style (metricStyle) travels with the op, so a house style keeps measure looks.
+                        const mstyle = (k) => { const s = (c.metricStyle || {})[k] || {}; const o = {}; if (s.color) o.color = s.color; if (s.opacity != null) o.opacity = Number(s.opacity); if (s.fill != null && Number(s.fill) !== 0) o.fill = Number(s.fill); if (s.sizeMult != null && Number(s.sizeMult) !== 1) o.size = Number(s.sizeMult); if (s.width != null && Number(s.width) !== 1) o.width = Number(s.width); if (s.symbol) o.shape = s.symbol; if (s.dash && s.dash !== 'solid') o.dash = s.dash; if (s.alias && String(s.alias).trim()) o.alias = String(s.alias); return o; };
+                        const ps = mstyle(c.quantKey);
+                        if (!ps.color && c.quantColor) ps.color = c.quantColor;
+                        const { color: pColor, ...pRest } = ps;
+                        styling.push({
+                            op: 'chart_metrics', ref: c.id,
+                            primary_axis: c.quantAxis === 'right' ? 'right' : 'left',
+                            ...(pColor ? { primary_color: pColor } : {}),
+                            ...(Object.keys(pRest).length ? { primary: pRest } : {}),
+                            metrics: c.metrics.filter(m => m && m.key).map(m => { const o = mstyle(m.key); if (!o.color && m.color) o.color = m.color; return { field: m.key, axis: m.axis === 'right' ? 'right' : 'left', ...o }; })
+                        });
+                    }
                     // Independently-styled (broken) chart: emit per-chart series ops (with ref) for what DIFFERS
                     // from the shared style, so re-importing rebuilds its independent look.
                     if (c.styleBroken && c.styleOverride) {
@@ -4227,6 +4580,52 @@ with the analysis defaults, this block wins.
                             if (cfg.alias != null && String(cfg.alias) !== g.name) styling.push({ op: 'series_alias', ref: c.id, category: cat, alias: String(cfg.alias) });
                         });
                     }
+                }));
+                { // Theme slots that differ from the factory defaults - the portable core of a house style.
+                    const factory = makeDefaultSeriesTheme();
+                    (Array.isArray(seriesTheme) && seriesTheme.length ? seriesTheme : factory).forEach((slot, i) => {
+                        const f = factory[i] || {}; if (!slot) return;
+                        const t = {};
+                        if (slot.color && slot.color !== f.color) t.color = slot.color;
+                        const so = normalizeSeriesOpacity(slot.opacity, 0.7); if (so !== normalizeSeriesOpacity(f.opacity, 0.7)) t.opacity = so;
+                        if (Number(slot.fill ?? 0) !== Number(f.fill ?? 0)) t.fill = Number(slot.fill ?? 0);
+                        if (Number(slot.width ?? 1) !== Number(f.width ?? 1)) t.width = Number(slot.width ?? 1);
+                        if (Number(slot.sizeMult ?? 1) !== Number(f.sizeMult ?? 1)) t.size = Number(slot.sizeMult ?? 1);
+                        if (slot.symbol && slot.symbol !== f.symbol) t.shape = slot.symbol;
+                        if (Object.keys(t).length) styling.push({ op: 'theme_slot', slot: i + 1, ...t });
+                    });
+                }
+                { // Global layout - emit only what differs from the app defaults.
+                    const ls = {};
+                    if (chartConfig.fontFamily === 'Times New Roman, serif') ls.font = 'serif';
+                    else if (chartConfig.fontFamily === 'Courier New, monospace') ls.font = 'mono';
+                    if (chartConfig.legendPosition && chartConfig.legendPosition !== 'custom' && ['top', 'bottom', 'left', 'right', 'inside'].includes(chartConfig.legendPosition)) ls.legend_position = chartConfig.legendPosition;
+                    if (Number(chartConfig.legendFontSize) !== 10) ls.legend_size = Number(chartConfig.legendFontSize);
+                    if (Number(chartConfig.axisFontSize) !== 11) ls.axis_size = Number(chartConfig.axisFontSize);
+                    if (String(chartConfig.axisTickAngle) !== '0') ls.tick_angle = String(chartConfig.axisTickAngle);
+                    if (chartConfig.showMinorGrids === false) ls.minor_grid = false;
+                    if (chartConfig.denseGridLabels === false) ls.dense_labels = false;
+                    if (Object.keys(ls).length) styling.push({ op: 'layout_style', ...ls });
+                }
+                Object.entries(fieldFormats || {}).forEach(([col, f]) => {
+                    if (!f || typeof f !== 'object') return;
+                    const o = {};
+                    if (typeof f.decimals === 'number') o.decimals = f.decimals;
+                    if (f.thousands) o.thousands = true;
+                    if (f.prefix) o.prefix = f.prefix;
+                    if (f.suffix) o.suffix = f.suffix;
+                    if (f.dateFormat) o.date_format = f.dateFormat;
+                    if (Object.keys(o).length) styling.push({ op: 'field_format', column: col, ...o });
+                });
+                Object.entries(fieldStyleConfig || {}).forEach(([col, vals]) => Object.entries(vals || {}).forEach(([val, cfg]) => {
+                    if (!cfg || typeof cfg !== 'object') return;
+                    const o = {};
+                    if (cfg.weight) o.weight = cfg.weight;
+                    if (cfg.width != null && cfg.width !== '') o.width = Number(cfg.width);
+                    if (cfg.opacity != null) o.opacity = Number(cfg.opacity);
+                    if (cfg.fill != null) o.fill = Number(cfg.fill);
+                    if (cfg.alias && String(cfg.alias).trim()) o.alias = String(cfg.alias);
+                    if (Object.keys(o).length) styling.push({ op: 'style_field', column: col, value: val, ...o });
                 }));
                 if (Number(chartConfig.chartColumns) === 2) styling.push({ op: 'chart_columns', columns: 2 });
                 const ts = {};
@@ -4289,6 +4688,7 @@ with the analysis defaults, this block wins.
                     ...merged,
                     relCharts: st.arrays.rel, distCharts: st.arrays.dist, compCharts: st.arrays.comp, timeCharts: st.arrays.time,
                     seriesConfig: st.seriesConfig, quantAliases: st.quantAliases, catAliases: st.catAliases, chartConfig: st.chartConfig,
+                    seriesTheme: st.seriesTheme, fieldFormats: st.fieldFormats, fieldStyleConfig: st.fieldStyleConfig,
                     aiImports: [...(cur.aiImports || []), rec],
                 });
                 const firstFam = ['rel', 'dist', 'comp', 'time'].find(f => byFamily[f].length);
@@ -4325,6 +4725,7 @@ with the analysis defaults, this block wins.
                     ...merged,
                     relCharts: st.arrays.rel, distCharts: st.arrays.dist, compCharts: st.arrays.comp, timeCharts: st.arrays.time,
                     seriesConfig: st.seriesConfig, quantAliases: st.quantAliases, catAliases: st.catAliases, chartConfig: st.chartConfig,
+                    seriesTheme: st.seriesTheme, fieldFormats: st.fieldFormats, fieldStyleConfig: st.fieldStyleConfig,
                     aiImports: (cur.aiImports || []).map(r => r.id === rec.id ? newRec : r),
                 });
                 const firstFam = ['rel', 'dist', 'comp', 'time'].find(f => byFamily[f].length);
@@ -4932,7 +5333,14 @@ with the analysis defaults, this block wins.
                 selectionrevision: selectionRevision,
                 plot_bgcolor: darkMode ? '#1e293b' : 'white',
                 paper_bgcolor: darkMode ? '#1e293b' : 'white',
-                font: { family: chartConfig.fontFamily, size: chartConfig.axisFontSize, color: darkMode ? '#e2e8f0' : '#334155' }
+                font: { family: chartConfig.fontFamily, size: chartConfig.axisFontSize, color: darkMode ? '#e2e8f0' : '#334155' },
+                // Styled hover tooltips: card-like, theme-aware, never truncate the series name.
+                hoverlabel: {
+                    bgcolor: darkMode ? '#0f172a' : '#ffffff',
+                    bordercolor: darkMode ? '#475569' : '#cbd5e1',
+                    font: { family: chartConfig.fontFamily, size: Math.max(12, chartConfig.axisFontSize), color: darkMode ? '#e2e8f0' : '#1e293b' },
+                    namelength: -1
+                }
             };
 
             const updateLegendCustom = (patch) => {
@@ -5112,7 +5520,7 @@ with the analysis defaults, this block wins.
 
             // Resolve one series' style. `override`, when provided, replaces the global seriesConfig lookup for
             // this category - used by charts whose style is "broken" (frozen/decoupled) from the global config.
-            const resolveTraceStyle = (cat, groupBy, defaultPalette = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'], override) => {
+            const resolveTraceStyle = (cat, groupBy, defaultPalette = SERIES_PALETTE, override) => {
                 const globalCategories = getCategoryValues(data || [], groupBy);
                 // Use the same cumulative index the Appearance panel uses, so default colors/symbols
                 // match the settings swatches; fall back to the within-group index if unseen.
@@ -5121,7 +5529,7 @@ with the analysis defaults, this block wins.
                 // Theme slot supplies defaults for this series index when the category isn't overridden.
                 const theme = (seriesTheme && seriesTheme.length) ? seriesTheme : makeDefaultSeriesTheme();
                 const slot = theme[styleIdx % theme.length] || {};
-                const color = userCfg.color || slot.color || defaultPalette[styleIdx % defaultPalette.length];
+                const color = seriesColorForMode(userCfg.color || slot.color || defaultPalette[styleIdx % defaultPalette.length], darkMode);
                 const opacity = normalizeSeriesOpacity(userCfg.opacity !== undefined ? userCfg.opacity : slot.opacity, 0.7);
                 return {
                     color,
@@ -5148,7 +5556,7 @@ with the analysis defaults, this block wins.
                 const cats = field ? getCategoryValues(data || [], field) : ['Overall Population'];
                 const gb = field || 'overall';
                 const ov = {};
-                cats.forEach(cat => { const st = resolveTraceStyle(cat, gb); ov[String(cat)] = { color: st.color, opacity: st.opacity, symbol: st.symbol, sizeMult: st.sizeMult, width: st.width, dash: st.dash, fill: st.fill }; });
+                cats.forEach(cat => { const st = resolveTraceStyle(cat, gb); ov[String(cat)] = { color: seriesColorToLight(st.color), opacity: st.opacity, symbol: st.symbol, sizeMult: st.sizeMult, width: st.width, dash: st.dash, fill: st.fill }; });
                 return ov;
             };
             const FAM_SETTERS = { rel: setRelCharts, dist: setDistCharts, comp: setCompCharts, time: setTimeCharts };
@@ -5279,7 +5687,7 @@ with the analysis defaults, this block wins.
             };
             const resolveMetricStyle = (i, ov) => {
                 const cfg = ov || {};
-                const color = cfg.color || SERIES_PALETTE[i % SERIES_PALETTE.length];
+                const color = seriesColorForMode(cfg.color || SERIES_PALETTE[i % SERIES_PALETTE.length], darkMode);
                 const opacity = normalizeSeriesOpacity(cfg.opacity, 0.7);
                 return {
                     color, colorAlpha: colorWithOpacity(color, opacity), opacity,
@@ -5863,7 +6271,7 @@ with the analysis defaults, this block wins.
                             y: [null],
                             mode: 'markers',
                             type: 'scatter',
-                            name: `Point size by ${escapeHtml(getQuantAlias(chart.size))}`,
+                            name: `<i><span style="opacity:0.75">Point size by ${escapeHtml(getQuantAlias(chart.size))}</span></i>`,
                             legend: 'legend2',
                             legendgroup: `__style_size_${chart.id}`,
                             legendrank: 1900,
@@ -5891,14 +6299,15 @@ with the analysis defaults, this block wins.
                         const displayValue = (aliasCfg.alias && String(aliasCfg.alias).trim() !== '') ? aliasCfg.alias : value;
                         // The swatch mirrors the style: interior fill, border thickness and border
                         // opacity all match the value's setting (hollow circle when fill is 0).
+                        // A CIRCLE like the data points themselves - a square here reads as a checkbox.
                         // Neutral (near-black) so the swatch color is not mistaken for a data color.
                         const swatchColor = darkMode ? '#e5e7eb' : '#111827';
                         const styleSwatch = {
-                            symbol: 'square',
-                            size: 14,
+                            symbol: 'circle',
+                            size: 11,
                             color: colorWithOpacity(swatchColor, Math.max(0, Math.min(1, Number(styleSample.fill) || 0))),
                             opacity: 1,
-                            line: { width: Math.max(0.5, Number(styleSample.width) || 1), color: colorWithOpacity(swatchColor, Math.max(0.25, Number(styleSample.opacity) || 1)) }
+                            line: { width: Math.max(1, Number(styleSample.width) || 1), color: colorWithOpacity(swatchColor, Math.max(0.3, Number(styleSample.opacity) || 1)) }
                         };
                         allTraces.push({
                             x: [null],
@@ -7321,12 +7730,25 @@ with the analysis defaults, this block wins.
                                         </section>
 
                                         <section className="space-y-1.5">
-                                            <h4 className="font-bold text-slate-800 dark:text-slate-100 text-base">6 · Per-chart controls</h4>
+                                            <h4 className="font-bold text-slate-800 dark:text-slate-100 text-base">6 · Tidy the workspace</h4>
+                                            <p>Everything that folds away, in one place:</p>
+                                            <ul className="list-disc pl-5 space-y-1">
+                                                <li><b>Present mode</b> - the screen button (top-right) does all of it at once: hides the side panel, collapses every chart's controls, and folds the analysis tables - just full-width charts. Press <b>Esc</b> (or click it again) to get your exact layout back.</li>
+                                                <li><b>Whole sidebar</b> - click the <b>Clues logo</b> (top-left). On a chart tab this also switches to an all-in-one view stacking every chart family.</li>
+                                                <li><b>All three sidebar groups</b> - <b>double-click</b> any group title or its grip (⋮⋮). Double-click again to reopen. Single-click still folds just that group.</li>
+                                                <li><b>Sidebar sub-sections</b> - the small chevrons button next to the row counter collapses every section on the current tab; click it again to expand them all.</li>
+                                                <li><b>One chart's controls</b> - the chevron at the left of its header. <b>Every chart's controls</b> - the lines button in the top toolbar.</li>
+                                                <li><b>Analysis tables</b> - each summary table below a chart family collapses with the chevron in its header.</li>
+                                            </ul>
+                                        </section>
+
+                                        <section className="space-y-1.5">
+                                            <h4 className="font-bold text-slate-800 dark:text-slate-100 text-base">7 · Per-chart controls</h4>
                                             <p>Open a chart's options (the dots button) to: show/hide its <b>title</b>, show/hide value labels and the legend, toggle the trendline and its formula, add notes, download the chart as an image, reset zoomed axes, and remove it. A chart's title starts as a generic description; click it on the chart to rename it - your text is kept and is included when you download the image. A pulsing dot on the options button means the chart has a note. Use <b>+ Add chart</b> within a view to compare more fields side by side.</p>
                                         </section>
 
                                         <section className="space-y-1.5">
-                                            <h4 className="font-bold text-slate-800 dark:text-slate-100 text-base">7 · Save &amp; share</h4>
+                                            <h4 className="font-bold text-slate-800 dark:text-slate-100 text-base">8 · Save &amp; share</h4>
                                             <ul className="list-disc pl-5 space-y-1">
                                                 <li><b>Export to Excel</b> - the filtered data and a summary as an <code>.xlsx</code> workbook.</li>
                                                 <li><b>Save Session</b> - a <code>.clue</code> file capturing your data <i>and</i> every filter, color, and layout choice. Reopen it with <b>Load Session</b>.</li>
@@ -7337,7 +7759,7 @@ with the analysis defaults, this block wins.
                                         </section>
 
                                         <section className="space-y-1.5">
-                                            <h4 className="font-bold text-slate-800 dark:text-slate-100 text-base">8 · Build info &amp; version notes</h4>
+                                            <h4 className="font-bold text-slate-800 dark:text-slate-100 text-base">9 · Build info &amp; version notes</h4>
                                             <ul className="list-disc pl-5 space-y-1">
                                                 <li>The footer of this guide shows the app version, a short build fingerprint, and the dataset’s date - so any shared file declares which build produced it.</li>
                                                 <li>If you open a session built by a different app version, a banner notes that some chart behaviors may differ. It never blocks anything - the file still works in full.</li>
@@ -7485,6 +7907,7 @@ with the analysis defaults, this block wins.
                                     <button onClick={() => setAiImportOpen(true)} title="Brings your AI's reply into Clues to build or restyle the charts. Paste it, or leave the box empty to use whatever you copied." className="flex items-center text-sm px-4 py-2 bg-violet-50 dark:bg-violet-900/30 hover:bg-violet-100 dark:hover:bg-violet-900/50 text-violet-700 dark:text-violet-300 rounded transition-colors border border-violet-200 dark:border-violet-800 font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed" disabled={!data}>
                                         <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg> Import AI spec
                                     </button>
+                                    <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 shrink-0" aria-hidden="true"></div>
                                     <button onClick={exportToExcel} title="Downloads the filtered data (plus a summary sheet) as an Excel .xlsx workbook." className="flex items-center text-sm px-4 py-2 bg-green-50 dark:bg-green-900/30 hover:bg-green-100 dark:hover:bg-green-900/50 text-green-700 dark:text-green-400 rounded transition-colors border border-green-200 dark:border-green-800 font-semibold shadow-sm disabled:opacity-50 disabled:cursor-not-allowed" disabled={!data}>
                                         <DownloadIcon /> Export to Excel
                                     </button>
@@ -7516,6 +7939,18 @@ with the analysis defaults, this block wins.
                                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={chartConfig.controlsCollapsed ? 'M4 6h16M4 12h16M4 18h16' : 'M4 6h16M4 12h10M4 18h16'} /></svg>
                                         </button>
                                     )}
+                                    {activeTab !== 'source' && activeTab !== 'overview' && activeTab !== 'description' && activeTab !== 'ai' && (
+                                        <button
+                                            type="button"
+                                            onClick={togglePresentMode}
+                                            aria-pressed={presentMode}
+                                            title={presentMode ? 'Exit Present mode (or press Esc) - restores the panels you had open' : 'Present: hide the side panel, chart controls, and analysis tables for a clean, full-width view of every chart. Esc exits.'}
+                                            className={`w-9 h-9 inline-flex items-center justify-center rounded-md border transition-colors shrink-0 ${presentMode ? 'bg-blue-600 border-blue-600 text-white shadow-sm' : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200'}`}
+                                        >
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="1.5" /><path d="M12 16v4M8 20h8" /><path d="M10 7.5l4 2.5-4 2.5z" /></svg>
+                                        </button>
+                                    )}
+                                    <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 shrink-0" aria-hidden="true"></div>
                                     <label className="cursor-pointer text-sm px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded transition-colors border border-slate-300 dark:border-slate-600 shadow-sm font-medium">
                                         Upload New Dataset <input type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={e => { parseFile(e.target.files[0]); e.target.value = null; }} />
                                     </label>
@@ -7607,8 +8042,8 @@ with the analysis defaults, this block wins.
                                         return (
                                             <div style={{ order: sectionOrder(sectionKey) }} {...sectionDnd(sectionKey)} className={`shrink-0 max-h-[45vh] overflow-y-auto custom-scrollbar border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 ${dragSection === sectionKey ? 'opacity-50' : ''} ${dragSection && dragSection !== sectionKey ? 'border-dashed border-blue-300 dark:border-blue-600' : ''}`}>
                                                 <div className="w-full flex items-center border-b border-t border-slate-200/70 dark:border-slate-700/70 bg-slate-50 dark:bg-slate-900/50">
-                                                    <span draggable onDragStart={() => setDragSection(sectionKey)} onDragEnd={() => setDragSection(null)} title="Drag to reorder this section" className="cursor-grab active:cursor-grabbing pl-3 pr-1 py-2 text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400 shrink-0"><GripIcon /></span>
-                                                    <button onClick={() => setAccordionState(p => ({ ...p, [key]: !(p[key] ?? true) }))} className="flex-1 flex items-center justify-between pr-5 py-2 text-sm uppercase tracking-wide font-extrabold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition-colors">
+                                                    <span draggable onDragStart={() => setDragSection(sectionKey)} onDragEnd={() => setDragSection(null)} onDoubleClick={toggleAllSidebarGroups} title="Drag to reorder this section - double-click to collapse or expand all three" className="cursor-grab active:cursor-grabbing pl-3 pr-1 py-2 text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400 shrink-0"><GripIcon /></span>
+                                                    <button onClick={() => setAccordionState(p => ({ ...p, [key]: !(p[key] ?? true) }))} onDoubleClick={toggleAllSidebarGroups} title="Click to collapse or expand - double-click to do all three at once" className="flex-1 flex items-center justify-between pr-5 py-2 text-sm uppercase tracking-wide font-extrabold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition-colors">
                                                         <span className="flex items-center gap-2">{title}{dot && <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" title="Has settings"></span>}</span>
                                                         <svg className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                                                     </button>
@@ -7660,8 +8095,8 @@ with the analysis defaults, this block wins.
                                     return (
                                     <div style={{ order: sectionOrder('settings') }} {...sectionDnd('settings')} className={`px-3 py-3 border-b border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/80 shrink-0 ${dragSection === 'settings' ? 'opacity-50' : ''} ${dragSection && dragSection !== 'settings' ? 'border-dashed border-blue-300 dark:border-blue-600' : ''}`}>
                                         <div className={`flex items-center gap-2 ${sOpen ? 'mb-2' : ''}`}>
-                                            <span style={{ order: 1 }} draggable onDragStart={() => setDragSection('settings')} onDragEnd={() => setDragSection(null)} title="Drag to reorder this section" className="cursor-grab active:cursor-grabbing pr-1 text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400 shrink-0"><GripIcon /></span>
-                                            <button style={{ order: 3 }} type="button" onClick={() => setAccordionState(p => ({ ...p, grp_settings: !(p['grp_settings'] ?? true) }))} className="flex-1 flex items-center justify-between gap-2 text-sm uppercase tracking-wide font-extrabold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition-colors">
+                                            <span style={{ order: 1 }} draggable onDragStart={() => setDragSection('settings')} onDragEnd={() => setDragSection(null)} onDoubleClick={toggleAllSidebarGroups} title="Drag to reorder this section - double-click to collapse or expand all three" className="cursor-grab active:cursor-grabbing pr-1 text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400 shrink-0"><GripIcon /></span>
+                                            <button style={{ order: 3 }} type="button" onClick={() => setAccordionState(p => ({ ...p, grp_settings: !(p['grp_settings'] ?? true) }))} onDoubleClick={toggleAllSidebarGroups} title="Click to collapse or expand - double-click to do all three at once" className="flex-1 flex items-center justify-between gap-2 text-sm uppercase tracking-wide font-extrabold text-slate-700 dark:text-slate-200 hover:text-slate-900 dark:hover:text-white transition-colors">
                                                 <span className="flex items-center gap-2">Filters, Appearance, Fields{sDot && <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" title={sDotTitle}></span>}</span>
                                                 <svg className={`w-3.5 h-3.5 transition-transform ${sOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" /></svg>
                                             </button>
@@ -7675,17 +8110,6 @@ with the analysis defaults, this block wins.
                                                         </svg>
                                                     </button>
                                                 )}
-                                                <button
-                                                    type="button"
-                                                    onClick={collapseAllAccordions}
-                                                    title="Collapse all accordions"
-                                                    className="inline-flex items-center gap-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-800 dark:hover:text-slate-100 transition-colors"
-                                                >
-                                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7l4 4 4-4M8 17l4-4 4 4" />
-                                                    </svg>
-                                                    Collapse
-                                                </button>
                                             </div>
                                             )}
                                         </div>
@@ -7702,9 +8126,26 @@ with the analysis defaults, this block wins.
 
                                 <div style={{ order: sectionOrder('settings') }} {...sectionDnd('settings')} className={`px-5 py-2 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-white dark:bg-slate-800 shadow-sm z-10 shrink-0 ${(accordionState['grp_settings'] ?? true) ? '' : 'hidden'}`}>
                                     <h2 className="font-bold text-slate-800 dark:text-slate-100 capitalize text-sm">{data ? sidebarTabLabel : 'Filters'}</h2>
-                                    <span className="bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 text-xs font-bold px-2.5 py-0.5 rounded-full border border-slate-200 dark:border-slate-700">
-                                        {data ? filteredData.length : 0} visible
-                                    </span>
+                                    <div className="flex items-center gap-1.5">
+                                        {data && (
+                                            <button
+                                                type="button"
+                                                onClick={anyAccordionOpen ? collapseAllAccordions : expandAllAccordions}
+                                                title={anyAccordionOpen ? 'Collapse all sections below' : 'Expand all sections below'}
+                                                className="inline-flex items-center justify-center rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-1 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 hover:text-slate-800 dark:hover:text-slate-100 transition-colors"
+                                            >
+                                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={anyAccordionOpen ? 'M8 7l4 4 4-4M8 17l4-4 4 4' : 'M8 9l4-4 4 4M8 15l4 4 4-4'} />
+                                                </svg>
+                                            </button>
+                                        )}
+                                        <span
+                                            className={`text-xs font-bold px-2.5 py-0.5 rounded-full border whitespace-nowrap ${data && filteredData.length < data.length ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700' : 'bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`}
+                                            title={data && filteredData.length < data.length ? `Filters and selections are hiding ${(data.length - filteredData.length).toLocaleString()} of ${data.length.toLocaleString()} rows` : 'All rows are visible'}
+                                        >
+                                            {data ? (filteredData.length < data.length ? `${filteredData.length.toLocaleString()} / ${data.length.toLocaleString()}` : filteredData.length.toLocaleString()) : 0} visible
+                                        </span>
+                                    </div>
                                 </div>
                                 
                                 <div style={{ order: sectionOrder('settings') }} {...sectionDnd('settings')} className={`p-5 overflow-y-auto custom-scrollbar flex-1 min-h-0 bg-slate-50/50 dark:bg-slate-900/50 ${(accordionState['grp_settings'] ?? true) ? '' : 'hidden'}`}>
@@ -7885,14 +8326,14 @@ with the analysis defaults, this block wins.
                                     )}
 
                                     {data && sidebarTab === 'appearance' && (
-                                        <>
+                                        <div className="flex flex-col">
                                             {keys.quant.length > 0 && (
-                                                <Accordion title="Metric Aliases" isOpen={accordionState['aliases'] ?? false} onToggle={() => setAccordionState(p => ({...p, aliases: !(p['aliases'] ?? false)}))} activeIndicator={Object.values(quantAliases).some(v => typeof v === 'string' && v.trim() !== '')}>
-                                                    <div className="space-y-4 max-h-[350px] overflow-y-auto custom-scrollbar pr-2">
+                                                <Accordion title="Metric Aliases" containerProps={accSectionProps('aliases')} gripProps={accSectionGrip('aliases')} isOpen={accordionState['aliases'] ?? false} onToggle={() => setAccordionState(p => ({...p, aliases: !(p['aliases'] ?? false)}))} activeIndicator={Object.values(quantAliases).some(v => typeof v === 'string' && v.trim() !== '')}>
+                                                    <div className="space-y-1.5 max-h-[350px] overflow-y-auto custom-scrollbar pr-2">
                                                         {keys.quant.map(k => (
-                                                            <div key={k} className="flex flex-col">
-                                                                <span className="text-sm text-slate-700 dark:text-slate-300 font-medium mb-1.5 truncate" title={k}>{k}</span>
-                                                                <input type="text" value={quantAliases[k] || ''} onChange={e => setQuantAliases(p => ({...p, [k]: e.target.value}))} placeholder={`Alias for ${k}`} className="w-full text-sm border border-slate-300 dark:border-slate-600 rounded px-3 py-2 outline-none focus:border-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500" />
+                                                            <div key={k} className="flex items-center gap-2">
+                                                                <span className="w-[42%] shrink-0 text-sm text-slate-700 dark:text-slate-300 font-medium truncate" title={k}>{k}</span>
+                                                                <input type="text" value={quantAliases[k] || ''} onChange={e => setQuantAliases(p => ({...p, [k]: e.target.value}))} placeholder="Alias" className="flex-1 min-w-0 text-sm border border-slate-300 dark:border-slate-600 rounded px-2.5 py-1.5 outline-none focus:border-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500" />
                                                             </div>
                                                         ))}
                                                     </div>
@@ -7902,12 +8343,12 @@ with the analysis defaults, this block wins.
                                                 </Accordion>
                                             )}
                                             {(keys.cat.length + keys.date.length) > 0 && (
-                                                <Accordion title="Category & Date Aliases" isOpen={accordionState['catAliases'] ?? false} onToggle={() => setAccordionState(p => ({...p, catAliases: !(p['catAliases'] ?? false)}))} activeIndicator={Object.values(catAliases).some(v => typeof v === 'string' && v.trim() !== '')}>
-                                                    <div className="space-y-4 max-h-[350px] overflow-y-auto custom-scrollbar pr-2">
+                                                <Accordion title="Category & Date Aliases" containerProps={accSectionProps('catAliases')} gripProps={accSectionGrip('catAliases')} isOpen={accordionState['catAliases'] ?? false} onToggle={() => setAccordionState(p => ({...p, catAliases: !(p['catAliases'] ?? false)}))} activeIndicator={Object.values(catAliases).some(v => typeof v === 'string' && v.trim() !== '')}>
+                                                    <div className="space-y-1.5 max-h-[350px] overflow-y-auto custom-scrollbar pr-2">
                                                         {[...keys.cat, ...keys.date].map(k => (
-                                                            <div key={k} className="flex flex-col">
-                                                                <span className="text-sm text-slate-700 dark:text-slate-300 font-medium mb-1.5 truncate" title={k}>{k}{keys.date.includes(k) && <span className="ml-1.5 text-xs font-normal text-slate-400 dark:text-slate-500">(date)</span>}</span>
-                                                                <input type="text" value={catAliases[k] || ''} onChange={e => setCatAliases(p => ({...p, [k]: e.target.value}))} placeholder={`Alias for ${k}`} className="w-full text-sm border border-slate-300 dark:border-slate-600 rounded px-3 py-2 outline-none focus:border-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500" />
+                                                            <div key={k} className="flex items-center gap-2">
+                                                                <span className="w-[42%] shrink-0 text-sm text-slate-700 dark:text-slate-300 font-medium truncate" title={k}>{k}{keys.date.includes(k) && <span className="ml-1.5 text-xs font-normal text-slate-400 dark:text-slate-500">(date)</span>}</span>
+                                                                <input type="text" value={catAliases[k] || ''} onChange={e => setCatAliases(p => ({...p, [k]: e.target.value}))} placeholder="Alias" className="flex-1 min-w-0 text-sm border border-slate-300 dark:border-slate-600 rounded px-2.5 py-1.5 outline-none focus:border-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500" />
                                                             </div>
                                                         ))}
                                                     </div>
@@ -7916,27 +8357,25 @@ with the analysis defaults, this block wins.
                                                     )}
                                                 </Accordion>
                                             )}
-                                            <Accordion title="Chart & Axis Layout" isOpen={accordionState['layout'] ?? false} onToggle={() => setAccordionState(p => ({...p, layout: !(p['layout'] ?? false)}))}>
-                                                <div className="grid grid-cols-2 gap-x-4 gap-y-5 text-sm">
-                                                    <div className="flex flex-col col-span-2">
-                                                        <span className="text-slate-700 dark:text-slate-300 font-medium mb-1.5">Font Family:</span>
-                                                        <select value={chartConfig.fontFamily} onChange={e => setChartConfig(p => ({...p, fontFamily: e.target.value}))} className="w-full border border-slate-300 dark:border-slate-600 rounded px-3 outline-none focus:border-blue-500 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                                            <Accordion title="Chart & Axis Layout" containerProps={accSectionProps('layout')} gripProps={accSectionGrip('layout')} isOpen={accordionState['layout'] ?? false} onToggle={() => setAccordionState(p => ({...p, layout: !(p['layout'] ?? false)}))}>
+                                                <div className="space-y-3 text-sm">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="w-24 shrink-0 text-slate-700 dark:text-slate-300 font-medium">Font:</span>
+                                                        <select value={chartConfig.fontFamily} onChange={e => setChartConfig(p => ({...p, fontFamily: e.target.value}))} className="flex-1 min-w-0 border border-slate-300 dark:border-slate-600 rounded px-2 outline-none focus:border-blue-500 py-1.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
                                                             <option value="Arial, sans-serif">Arial / Sans-Serif</option><option value="Times New Roman, serif">Times / Serif</option><option value="Courier New, monospace">Courier / Mono</option>
                                                         </select>
                                                     </div>
-                                                    <div className="flex flex-col col-span-2">
-                                                        <span className="text-slate-700 dark:text-slate-300 font-medium mb-1.5">Chart Title:</span>
-                                                        <div className="flex items-center gap-2 flex-wrap">
-                                                            <label className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">Size<input type="number" min="8" max="40" placeholder="auto" value={chartConfig.titleSize || ''} onChange={e => setChartConfig(p => ({...p, titleSize: e.target.value === '' ? '' : Number(e.target.value)}))} className="w-16 border border-slate-300 dark:border-slate-600 rounded px-2 py-1 text-center outline-none focus:border-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" /></label>
-                                                            <button type="button" onClick={() => setChartConfig(p => ({...p, titleBold: !p.titleBold}))} title="Bold title" className={`w-8 h-8 rounded border font-bold ${chartConfig.titleBold ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900'}`}>B</button>
-                                                            <button type="button" onClick={() => setChartConfig(p => ({...p, titleItalic: !p.titleItalic}))} title="Italic title" className={`w-8 h-8 rounded border italic ${chartConfig.titleItalic ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900'}`}>I</button>
-                                                            <label className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">Color<input type="color" value={chartConfig.titleColor || (darkMode ? '#f1f5f9' : '#1e293b')} onChange={e => setChartConfig(p => ({...p, titleColor: e.target.value}))} className="w-7 h-7 rounded cursor-pointer p-0 bg-transparent border border-slate-300 dark:border-slate-600" /></label>
-                                                            {(chartConfig.titleColor || chartConfig.titleSize || chartConfig.titleBold || chartConfig.titleItalic) && <button type="button" onClick={() => setChartConfig(p => ({...p, titleSize: '', titleBold: false, titleItalic: false, titleColor: ''}))} className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 underline">reset</button>}
-                                                        </div>
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <span className="w-24 shrink-0 text-slate-700 dark:text-slate-300 font-medium">Title:</span>
+                                                        <label className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">Size<input type="number" min="8" max="40" placeholder="auto" value={chartConfig.titleSize || ''} onChange={e => setChartConfig(p => ({...p, titleSize: e.target.value === '' ? '' : Number(e.target.value)}))} className="w-14 border border-slate-300 dark:border-slate-600 rounded px-1 py-1 text-center outline-none focus:border-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" /></label>
+                                                        <button type="button" onClick={() => setChartConfig(p => ({...p, titleBold: !p.titleBold}))} title="Bold title" className={`w-7 h-7 rounded border font-bold ${chartConfig.titleBold ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900'}`}>B</button>
+                                                        <button type="button" onClick={() => setChartConfig(p => ({...p, titleItalic: !p.titleItalic}))} title="Italic title" className={`w-7 h-7 rounded border italic ${chartConfig.titleItalic ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 bg-white dark:bg-slate-900'}`}>I</button>
+                                                        <label className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">Color<input type="color" value={chartConfig.titleColor || (darkMode ? '#f1f5f9' : '#1e293b')} onChange={e => setChartConfig(p => ({...p, titleColor: e.target.value}))} className="w-7 h-7 rounded cursor-pointer p-0 bg-transparent border border-slate-300 dark:border-slate-600" /></label>
+                                                        {(chartConfig.titleColor || chartConfig.titleSize || chartConfig.titleBold || chartConfig.titleItalic) && <button type="button" onClick={() => setChartConfig(p => ({...p, titleSize: '', titleBold: false, titleItalic: false, titleColor: ''}))} className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 underline">reset</button>}
                                                     </div>
-                                                    <div className="flex flex-col col-span-2">
-                                                        <span className="text-slate-700 dark:text-slate-300 font-medium mb-1.5">Default Legend:</span>
-                                                        <select value={chartConfig.legendPosition || (chartConfig.legendOrientation === 'v' ? 'right' : 'top')} onChange={e => { const pos = e.target.value; setChartConfig(p => ({...p, legendPosition: pos, legendOrientation: (pos === 'left' || pos === 'right' || pos === 'inside' || pos === 'custom') ? 'v' : 'h', legendCustom: { x: 0.98, y: 0.98, xanchor: 'right', yanchor: 'top', orientation: 'v', ...(p.legendCustom || {}) }})); }} className="w-full border border-slate-300 dark:border-slate-600 rounded px-3 outline-none focus:border-blue-500 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="w-24 shrink-0 text-slate-700 dark:text-slate-300 font-medium">Legend:</span>
+                                                        <select value={chartConfig.legendPosition || (chartConfig.legendOrientation === 'v' ? 'right' : 'top')} onChange={e => { const pos = e.target.value; setChartConfig(p => ({...p, legendPosition: pos, legendOrientation: (pos === 'left' || pos === 'right' || pos === 'inside' || pos === 'custom') ? 'v' : 'h', legendCustom: { x: 0.98, y: 0.98, xanchor: 'right', yanchor: 'top', orientation: 'v', ...(p.legendCustom || {}) }})); }} className="flex-1 min-w-0 border border-slate-300 dark:border-slate-600 rounded px-2 outline-none focus:border-blue-500 py-1.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
                                                             <option value="top">Top</option><option value="bottom">Bottom</option><option value="left">Left</option><option value="right">Right</option><option value="inside">Inside Graph</option><option value="custom">Custom Inside</option>
                                                         </select>
                                                     </div>
@@ -7971,31 +8410,30 @@ with the analysis defaults, this block wins.
                                                             <p className="col-span-2 text-xs text-slate-500 dark:text-slate-400">Used for charts without their own dragged legend position.</p>
                                                         </div>
                                                     )}
-                                                    <div className="flex flex-col">
-                                                        <span className="text-slate-700 dark:text-slate-300 font-medium mb-1.5">Leg. Size:</span>
-                                                        <input type="number" min="6" max="24" value={chartConfig.legendFontSize} onChange={e => setChartConfig(p => ({...p, legendFontSize: Number(e.target.value)}))} className="w-full border border-slate-300 dark:border-slate-600 rounded px-3 outline-none focus:border-blue-500 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" />
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="w-24 shrink-0 text-slate-700 dark:text-slate-300 font-medium">Font sizes:</span>
+                                                        <label className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">Legend<input type="number" min="6" max="24" value={chartConfig.legendFontSize} onChange={e => setChartConfig(p => ({...p, legendFontSize: Number(e.target.value)}))} className="w-14 border border-slate-300 dark:border-slate-600 rounded px-1 py-1 text-center outline-none focus:border-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" /></label>
+                                                        <label className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">Axis<input type="number" min="6" max="24" value={chartConfig.axisFontSize} onChange={e => setChartConfig(p => ({...p, axisFontSize: Number(e.target.value)}))} className="w-14 border border-slate-300 dark:border-slate-600 rounded px-1 py-1 text-center outline-none focus:border-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" /></label>
                                                     </div>
-                                                    <div className="flex flex-col">
-                                                        <span className="text-slate-700 dark:text-slate-300 font-medium mb-1.5">Axis Size:</span>
-                                                        <input type="number" min="6" max="24" value={chartConfig.axisFontSize} onChange={e => setChartConfig(p => ({...p, axisFontSize: Number(e.target.value)}))} className="w-full border border-slate-300 dark:border-slate-600 rounded px-3 outline-none focus:border-blue-500 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100" />
-                                                    </div>
-                                                    <div className="flex flex-col col-span-2">
-                                                        <span className="text-slate-700 dark:text-slate-300 font-medium mb-1.5">X-Axis Labels:</span>
-                                                        <select value={chartConfig.axisTickAngle} onChange={e => setChartConfig(p => ({...p, axisTickAngle: e.target.value}))} className="w-full border border-slate-300 dark:border-slate-600 rounded px-3 outline-none focus:border-blue-500 py-2 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="w-24 shrink-0 text-slate-700 dark:text-slate-300 font-medium">X labels:</span>
+                                                        <select value={chartConfig.axisTickAngle} onChange={e => setChartConfig(p => ({...p, axisTickAngle: e.target.value}))} className="flex-1 min-w-0 border border-slate-300 dark:border-slate-600 rounded px-2 outline-none focus:border-blue-500 py-1.5 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">
                                                             <option value="auto">Auto-Angle</option><option value="0">0° (Flat)</option><option value="-45">-45°</option><option value="-90">-90° (Vertical)</option>
                                                         </select>
                                                     </div>
-                                                    <div className="flex items-center justify-between col-span-2 pt-3 border-t border-slate-100 dark:border-slate-700">
-                                                        <span className="text-slate-700 dark:text-slate-300 font-medium">Minor Gridlines:</span>
-                                                        <input type="checkbox" checked={chartConfig.showMinorGrids || false} onChange={e => setChartConfig(p => ({...p, showMinorGrids: e.target.checked}))} className="rounded text-blue-600 focus:ring-blue-500 w-5 h-5 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600" />
-                                                    </div>
-                                                    <div className="flex items-center justify-between col-span-2 pb-2">
-                                                        <span className="text-slate-700 dark:text-slate-300 font-medium">Dense Axis Labels:</span>
-                                                        <input type="checkbox" checked={chartConfig.denseGridLabels || false} onChange={e => setChartConfig(p => ({...p, denseGridLabels: e.target.checked}))} className="rounded text-blue-600 focus:ring-blue-500 w-5 h-5 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600" />
+                                                    <div className="flex items-center gap-5 pt-2.5 border-t border-slate-100 dark:border-slate-700">
+                                                        <label className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-medium cursor-pointer">
+                                                            <input type="checkbox" checked={chartConfig.showMinorGrids || false} onChange={e => setChartConfig(p => ({...p, showMinorGrids: e.target.checked}))} className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600" />
+                                                            Minor grid
+                                                        </label>
+                                                        <label className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-medium cursor-pointer">
+                                                            <input type="checkbox" checked={chartConfig.denseGridLabels || false} onChange={e => setChartConfig(p => ({...p, denseGridLabels: e.target.checked}))} className="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 bg-white dark:bg-slate-900 border-slate-300 dark:border-slate-600" />
+                                                            Dense labels
+                                                        </label>
                                                     </div>
                                                 </div>
                                             </Accordion>
-                                            <Accordion title="Series theme (defaults)" isOpen={accordionState['seriesTheme'] ?? false} onToggle={() => setAccordionState(p => ({...p, seriesTheme: !(p['seriesTheme'] ?? false)}))} activeIndicator={JSON.stringify(seriesTheme) !== JSON.stringify(makeDefaultSeriesTheme())} activeTooltip="Theme customized">
+                                            <Accordion title="Series theme (defaults)" containerProps={accSectionProps('seriesTheme')} gripProps={accSectionGrip('seriesTheme')} isOpen={accordionState['seriesTheme'] ?? false} onToggle={() => setAccordionState(p => ({...p, seriesTheme: !(p['seriesTheme'] ?? false)}))} activeIndicator={JSON.stringify(seriesTheme) !== JSON.stringify(makeDefaultSeriesTheme())} activeTooltip="Theme customized">
                                                 <div className="text-xs text-slate-500 dark:text-slate-400 mb-3">Defaults for series 1, 2, 3… applied when a category isn't styled individually below. Edits here affect <b>this session only</b> (saved with it). Use <b>Set as my default</b> to make the current theme the starting point for <b>new datasets</b>.</div>
                                                 <div className="space-y-3 max-h-[360px] overflow-y-auto custom-scrollbar pr-2">
                                                     {(seriesTheme && seriesTheme.length ? seriesTheme : makeDefaultSeriesTheme()).slice(0, 8).map((slot, i) => {
@@ -8011,7 +8449,7 @@ with the analysis defaults, this block wins.
                                                                 </div>
                                                                 <div className="space-y-2 text-xs">
                                                                     <div className="flex items-end gap-2">
-                                                                        <label className="flex flex-col gap-1 shrink-0"><span className="text-slate-600 dark:text-slate-400 font-medium">Color</span><input type="color" value={slot.color || '#1f77b4'} onChange={e => set({ color: e.target.value })} className="w-9 h-7 rounded cursor-pointer p-0 bg-transparent border border-slate-300 dark:border-slate-600" /></label>
+                                                                        <label className="flex flex-col gap-1 shrink-0"><span className="text-slate-600 dark:text-slate-400 font-medium">Color</span><input type="color" value={slot.color || '#2a78d6'} onChange={e => set({ color: e.target.value })} className="w-9 h-7 rounded cursor-pointer p-0 bg-transparent border border-slate-300 dark:border-slate-600" /></label>
                                                                         <label className="flex flex-col gap-1 flex-1 min-w-0"><div className="flex items-center justify-between"><span className="text-slate-600 dark:text-slate-400 font-medium">Transp</span><span className="font-mono text-slate-500 dark:text-slate-400">{Math.round(transparency * 100)}%</span></div><input type="range" min="0" max="0.95" step="0.05" value={transparency} onChange={e => set({ opacity: normalizeSeriesOpacity(1 - Number(e.target.value), 1) })} className="w-full accent-blue-600" /></label>
                                                                         <label className="flex flex-col gap-1 flex-1 min-w-0"><div className="flex items-center justify-between"><span className="text-slate-600 dark:text-slate-400 font-medium">Fill</span><span className="font-mono text-slate-500 dark:text-slate-400">{Math.round(fillv * 100)}%</span></div><input type="range" min="0" max="1" step="0.05" value={fillv} onChange={e => set({ fill: Number(e.target.value) })} className="w-full accent-blue-600" title="Marker interior fill (scatter)" /></label>
                                                                     </div>
@@ -8033,7 +8471,7 @@ with the analysis defaults, this block wins.
                                                     <button onClick={() => setSeriesTheme(makeDefaultSeriesTheme())} className="w-full text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 hover:underline text-center transition-colors">Reset to factory defaults</button>
                                                 </div>
                                             </Accordion>
-                                            <Accordion title="Series Styling & Aliases" isOpen={accordionState['styling'] ?? false} onToggle={() => setAccordionState(p => ({...p, styling: !(p['styling'] ?? false)}))} activeIndicator={Object.keys(seriesConfig).length > 0}>
+                                            <Accordion title="Series Styling & Aliases" containerProps={accSectionProps('styling')} gripProps={accSectionGrip('styling')} isOpen={accordionState['styling'] ?? false} onToggle={() => setAccordionState(p => ({...p, styling: !(p['styling'] ?? false)}))} activeIndicator={Object.keys(seriesConfig).length > 0}>
                                                 <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
                                                     {activeColorCategories.map(({cat, globalIdx}) => {
                                                         const defaultPalette = SERIES_PALETTE;
@@ -8075,7 +8513,7 @@ with the analysis defaults, this block wins.
                                                 )}
                                             </Accordion>
                                             {timeCharts.some(c => chartMetricSeries(c).length > 0) && (
-                                                <Accordion title="Measures (time overlays)" titleHint="Full styling for the measures overlaid on your multi-measure time charts - color, transparency, fill, size, thickness, shape, line style, and rename. Per chart, since each chart picks its own measures." isOpen={accordionState['metricStyling'] ?? false} onToggle={() => setAccordionState(p => ({...p, metricStyling: !(p['metricStyling'] ?? false)}))} activeIndicator={timeCharts.some(c => c.metricStyle && Object.keys(c.metricStyle).length > 0)} activeTooltip="Measure styles customized">
+                                                <Accordion title="Measures (time overlays)" titleHint="Full styling for the measures overlaid on your multi-measure time charts - color, transparency, fill, size, thickness, shape, line style, and rename. Per chart, since each chart picks its own measures." containerProps={accSectionProps('metricStyling')} gripProps={accSectionGrip('metricStyling')} isOpen={accordionState['metricStyling'] ?? false} onToggle={() => setAccordionState(p => ({...p, metricStyling: !(p['metricStyling'] ?? false)}))} activeIndicator={timeCharts.some(c => c.metricStyle && Object.keys(c.metricStyle).length > 0)} activeTooltip="Measure styles customized">
                                                     <div className="space-y-4 max-h-[440px] overflow-y-auto custom-scrollbar pr-2">
                                                         {timeCharts.filter(c => chartMetricSeries(c).length > 0).map(c => (
                                                             <div key={c.id} className="border border-slate-200 dark:border-slate-700 rounded-lg bg-white dark:bg-slate-800 overflow-hidden">
@@ -8089,7 +8527,7 @@ with the analysis defaults, this block wins.
                                                     </div>
                                                 </Accordion>
                                             )}
-                                            <Accordion title="Style-by field" titleHint="Styles points by a scatter's 'Style' field using line weight, opacity, and fill - color and shape still come from the color field. Appears when a scatter has a Style field selected." isOpen={accordionState['thirdFieldStyling'] ?? false} onToggle={() => setAccordionState(p => ({...p, thirdFieldStyling: !(p['thirdFieldStyling'] ?? false)}))} activeIndicator={Object.keys(fieldStyleConfig).length > 0}>
+                                            <Accordion title="Style-by field" titleHint="Styles points by a scatter's 'Style' field using line weight, opacity, and fill - color and shape still come from the color field. Appears when a scatter has a Style field selected." containerProps={accSectionProps('thirdFieldStyling')} gripProps={accSectionGrip('thirdFieldStyling')} isOpen={accordionState['thirdFieldStyling'] ?? false} onToggle={() => setAccordionState(p => ({...p, thirdFieldStyling: !(p['thirdFieldStyling'] ?? false)}))} activeIndicator={Object.keys(fieldStyleConfig).length > 0}>
                                                 <div className="space-y-5 max-h-[420px] overflow-y-auto custom-scrollbar pr-2">
                                                     {activeThirdStyleFields.length === 0 && (
                                                         <div className="text-sm text-slate-400 dark:text-slate-500 italic text-center py-4">No scatter Style field selected</div>
@@ -8151,7 +8589,7 @@ with the analysis defaults, this block wins.
                                                     )}
                                                 </div>
                                             </Accordion>
-                                        </>
+                                        </div>
                                     )}
                                 </div>
                             </aside>}
@@ -8921,6 +9359,7 @@ with the analysis defaults, this block wins.
                                             {addChartControl('rel', setRelCharts, relCharts.length === 0)}
 
                                             <AnalysisTable
+                                                {...analysisTableProps('rel')}
                                                 title="Relationship Analysis"
                                                 rows={relationshipStats}
                                                 emptyText="No relationship charts or valid data available"
@@ -9113,6 +9552,7 @@ with the analysis defaults, this block wins.
                                             {addChartControl('dist', setDistCharts, distCharts.length === 0)}
 
                                             <AnalysisTable
+                                                {...analysisTableProps('dist')}
                                                 title="Distribution Analysis"
                                                 rows={statsData}
                                                 emptyText="No distribution data available"
@@ -9350,6 +9790,7 @@ with the analysis defaults, this block wins.
                                             </div>
                                             {addChartControl('comp', setCompCharts, compCharts.length === 0)}
                                             <AnalysisTable
+                                                {...analysisTableProps('comp')}
                                                 title="Comparison Analysis"
                                                 rows={comparisonStats}
                                                 emptyText="No comparison data available"
@@ -9526,6 +9967,7 @@ with the analysis defaults, this block wins.
                                             </div>
                                             {addChartControl('time', setTimeCharts, timeCharts.length === 0)}
                                             <AnalysisTable
+                                                {...analysisTableProps('time')}
                                                 title="Time Analysis"
                                                 rows={timeStats}
                                                 emptyText="No time-series data available"

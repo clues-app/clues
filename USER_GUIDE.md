@@ -47,11 +47,13 @@ The **left sidebar** stacks three collapsible groups, each with a **grip handle 
 - **Graph Types** - Relationships, Distributions, Comparisons, Over Time. A small **dot** marks a type that already has charts. Families only appear when your data supports them (e.g. *Over Time* needs a date column) - but tick **Show empty groups** at the bottom of this section to reveal **every** family and let the Add-a-chart picker offer **any** type, so the Analyzer can never stop you choosing a chart.
 - **Filters, Appearance, Fields** - three tabs: **Filters**, **Appearance**, **Fields**. A pulsing dot means something non-default is set - **hover it to see exactly what** (e.g. *"Active: Filters, Column types, Colors/styles"*).
 
-**Drag any group by its grip to reorder the three** - e.g. put *Filters, Appearance, Fields* on top if that's what you use most. The order is **saved with your session**. Each group's chevron (top-right) collapses it.
+**Drag any group by its grip to reorder the three** - e.g. put *Filters, Appearance, Fields* on top if that's what you use most. The order is **saved with your session**. Each group's chevron (top-right) collapses it, and **double-clicking any group title or grip collapses or expands all three at once**.
+
+Inside the *Filters, Appearance, Fields* group, the row-counter line adds two helpers: a **chevrons button** that collapses or expands **every sub-section** of the current tab in one click, and the **row-counter pill**, which turns **amber** and reads like `212 / 344 visible` whenever filters or selections are hiding rows.
 
 The **main area** shows your charts (or the dataset views), laid out in **1 or 2 columns**.
 
-The **top toolbar** holds the dataset **Description** button, **Help & Guide**, the **audit** button, **dark mode**, **AI context** and **Import AI spec** (violet), **Export to Excel / Save Session / Share (interactive) / Load Session**, **Upload New Dataset**, and **Clear Session**.
+The **top toolbar** holds the dataset **Description** button, **Help & Guide**, the **audit** button, **dark mode**, **AI context** and **Import AI spec** (violet), **Export to Excel / Save Session / Share (interactive) / Load Session**, **Present** (one click hides the side panel, every chart's controls, and the analysis tables for a clean, full-width view - press **Esc** or click again to restore exactly what you had open), **Upload New Dataset**, and **Clear Session**.
 
 ![Interface zones](docs/images/02-interface-zones.png)
 
@@ -254,7 +256,7 @@ Open the **Filters** tab in the sidebar.
 
 ## 7. Appearance & theming
 
-Open the **Appearance** tab.
+Open the **Appearance** tab. Every sub-section below has a **grip (⋮⋮)** in its header - **drag one onto another to reorder them** (put what you use most on top); the order is saved with your session.
 
 - **Chart & Axis Layout** - **1 or 2** columns; **font family**; **legend** position & size; **axis** ranges, fonts & **gridlines**; and **Chart Title** typography - **size, Bold, Italic, and color** (global, with a reset). *(Titles also stay editable inline - double-click a title on the chart to retype it.)*
 - **Series theme (defaults)** - the default **color, transparency, fill, shape, point size, thickness, and line style** for series 1, 2, 3 … When a category isn't individually styled, the theme decides its look. **Editing the theme changes *this session only*** (it saves and reloads with the `.clue`). Your **global default** (house style) - what every **new dataset** starts from - is set only when you click **★ Set as my default**, so *loading a session can never overwrite your default*. **Load my default** pulls your house style into the current session; **Reset to factory defaults** restores the built-in look.
@@ -262,6 +264,8 @@ Open the **Appearance** tab.
 - **Style-by field** - when a scatter has a secondary **Style** field, this styles points *by that field* using **line weight, opacity, and fill** (color and shape still come from the color field) - so one scatter can encode two categories at once. Like the theme, edits are **per session**; **★ Set as my default** saves the styling as a global house style that's reapplied to **matching fields** (same column + values) in new datasets, and **Load my default** pulls it back in.
 
 Color and style edits apply **live** to every chart type (pie, donut, maps included).
+
+**Default colors.** The factory palette is curated and **colorblind-validated** - its slot order was chosen to keep adjacent series distinguishable under the common forms of color-vision deficiency. In **Dark mode**, each factory color automatically swaps to a matched dark-surface variant (validated separately), while colors you picked yourself are always used exactly as picked.
 
 ![Appearance - series theme](docs/images/17-appearance-theme.png)
 *![Appearance - series theme](docs/images/17.2-appearance-style.png)*
@@ -289,10 +293,10 @@ Each chart card has a header with its **type** and field pickers, and a **⋮ op
 
 **Hide series from the legend (persisted).** Click a series in the **legend** to hide it (Plotly's built-in behavior; double-click a series to isolate just that one). Clues now **remembers which series you hid per chart** - so it survives reload, session save, and sharing. When any series is hidden, a **funnel icon** appears in the header (next to the style-link toggle); click it to **show all series again**. On a scatter with a **Style** field (3rd field), clicking a value in its **style legend** also **filters those points out** of the chart (the swatch grays to show it's off) - the same funnel icon resets it. From options you can: show/hide the **title**, value **labels**, and **legend**; toggle the **trendline** + formula; set per-chart **Title** typography (**size, Bold, Italic, color**), a **Title position** (the little square - click a side to put the title **top / bottom / left / right**; handy when a treemap grows on drill-down and crowds a top title), and a **Subtitle**; add **notes**; **download the chart** as a **PNG** (raster, universal) or a **Vector (SVG)** - vector stays crisp at any size and is editable in Word/PowerPoint/Excel via *Insert the .svg → Convert to Shape* (SVG is offered only for charts Plotly can vectorize, so it's hidden on 3D, **tile** maps, parallel-coordinates, and the scatter matrix - but an **Outline**-basemap map *is* vector, so it can be saved as SVG); **Snapshot (with caption)**; **Duplicate** the chart (an independent copy you can restyle without touching the original); reset zoomed axes; and **remove** the chart.
 
-> **Analysis tables.** Below each Graph Type sits a **summary table** (Relationship / Distribution / Comparison / Time Analysis) with a **Download Excel** button. For scatters it reports **N, correlation (r), R², slope, and intercept** per group - the trendline's numbers, not just its line.
+> **Analysis tables.** Below each Graph Type sits a **summary table** (Relationship / Distribution / Comparison / Time Analysis) with a **Download Excel** button. For scatters it reports **N, correlation (r), R², slope, and intercept** per group - the trendline's numbers, not just its line. Each table **collapses** with the chevron in its header, and the choice saves with your session.
 
 - Click a chart's **title** to rename it - your text is kept and included in exports. (For bold/italic in the title text you can use HTML - `<b>…</b>`, `<i>…</i>`.)
-- **Independent styling - the broken-link icon.** Each header has a **link / broken-link** toggle. Click it to **decouple this chart from the shared styling**: it freezes its current look and stops following global color/theme changes, and a **per-chart color + transparency editor** appears in its options menu (color, opacity, shape, size for each series). Click again to **re-link**. Use it when you want *one* chart to look different without disturbing the others.
+- **Independent styling - the broken-link icon.** Each header has a **link / broken-link** toggle. Click it to **decouple this chart from the shared styling**: it freezes its current look and stops following global color/theme changes, and a **per-chart color + transparency editor** appears in its options menu, folded under a **"This chart's colors (independent)"** heading - click the heading to unfold it (color, opacity, shape, size for each series). Click again to **re-link**. Use it when you want *one* chart to look different without disturbing the others.
 - A **pulsing dot** on the options button means the chart has a **note**. Suggested and AI-built charts arrive pre-noted with *why* and *things to try*.
 - Headers stay compact (about two rows); icon-only controls carry tooltips. In single-column layout the dropdowns widen to fit long field names.
 
