@@ -59,6 +59,16 @@
             #mobile-gate .mg-icon { width: 80px; height: 80px; border-radius: 18px; box-shadow: 0 8px 22px rgba(0,0,0,.42); }
             #mobile-gate .mg-brand { font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; color: #94a3b8; }
         }
+        /* Present mode is built for every screen size - it bypasses the size gate entirely.
+           (The gate guards the WORKBENCH, which needs room; a presentation is the one thing
+           a phone recipient should always be able to open.) */
+        body.clues-presenting #root { display: block !important; }
+        body.clues-presenting #mobile-gate { display: none !important; }
+        /* On gate-sized screens there is NO exit from Present: leaving would land in the gated
+           workbench with no way back. The Esc pill hides; the Esc key is ignored in JS too. */
+        @media (max-width: 1299px), (max-height: 409px) {
+            .present-exit { display: none !important; }
+        }
 
         /* Chart header controls: give every dropdown room for its chevron so the selected
            value never collides with the arrow. In single-column layout there's plenty of room,
@@ -86,12 +96,23 @@
         .no-scrollbar { scrollbar-width: none; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         /* Small screens: a side presentation note stacks ABOVE its chart instead of squeezing it. */
-        @media (max-width: 640px) {
+        /* Compact presentation (phones portrait AND landscape, small windows): free placements
+           assume a wide band, so they are neutralized - cards re-center, side notes stack above
+           their chart, desktop panel heights clamp to the viewport, note type reins back to body
+           size, and (while presenting) the card header chrome disappears - the viewer gets charts,
+           not toolbars. */
+        @media (max-width: 1023px), (max-height: 500px) {
             .preso-side { display: flex !important; flex-direction: column !important; align-items: stretch !important; }
             .preso-side .preso-note-col { position: static !important; transform: none !important; left: auto !important; right: auto !important; width: 100% !important; min-width: 0 !important; max-width: none !important; align-self: auto !important; }
-            /* A pinned left offset makes no sense on a narrow screen - cards re-center. */
-            .chart-card-in { margin-left: auto !important; margin-right: auto !important; }
+            .chart-card-in { margin-left: auto !important; margin-right: auto !important; height: min(440px, calc(100dvh - 80px)) !important; }
+            .preso-note-content, .preso-note-content * { font-size: 15px !important; }
+            body.clues-presenting .chart-head { display: none !important; }
+            /* ...but a tiny per-card button can summon the controls back (edit the chart, toggle
+               the legend, open the options menu) - interactivity is the point of a live deck. */
+            body.clues-presenting .chart-head-mini { display: inline-flex !important; }
+            body.clues-presenting .chart-head.chart-head-open { display: block !important; }
         }
+        .chart-head-mini { display: none; }
 
         /* Presentation note: free-standing rich text beside a chart. Placeholder shows while empty. */
         .preso-note-content:empty:before { content: attr(data-placeholder); color: #94a3b8; font-style: italic; cursor: text; }
@@ -1677,6 +1698,8 @@
 
         const ChartCard = ({ chartId, titleOptions, topControls, bottomControls, onRemove, onImage, onImageSvg, onSnapshot, aiBadge, highlighted, showNotes, chartNotes, onToggleNotes, onUpdateNotes, showTitle, onToggleTitle, styleLegendOn, onToggleStyleLegend, styleBroken, onToggleBreakStyle, breakStyleControls, onDuplicate, onReorderStart, onReorderOver, onReorderDrop, onReorderEnd, reorderActive, children, heightClass, panelHeight, onResizeHeight, panelWidth, panelLeft, onResizeWidth, defaultCollapsed, metricStyleControls, filterActive, onResetFilter, presoNote, presoNotePos, showPresoNote, onTogglePresoNote, onUpdatePresoNote, onSetPresoNotePos, presoNoteFont, presoNoteSize, presoNoteWidth, presoNoteGap, presoNoteColor, presoNoteAlign, presoNoteLeft, inPresent, presentActive, onPatchPreso }) => {
             const [menuOpen, setMenuOpen] = useState(false);
+            // Compact presenting hides the card header; this per-card toggle summons it back.
+            const [mobileHeadOpen, setMobileHeadOpen] = useState(false);
             // The two style sections of the options menu fold up by default - they hold a control per
             // category/measure and can push the menu past the bottom of the screen.
             const [indepColorsOpen, setIndepColorsOpen] = useState(false);
@@ -1902,7 +1925,18 @@
                     {onResizeWidth && styleWidth && (
                         <div onMouseDown={e => startResizeWidth(e, 'left')} onDoubleClick={() => { if (onPatchPreso) onPatchPreso({ panelLeft: null }); }} title="Drag the LEFT edge (the right edge stays put) - Shift+drag moves the whole chart - double-click re-centers it" aria-label="Move panel left edge" className="absolute top-0 -left-[3px] w-[7px] h-full cursor-ew-resize rounded-l-xl z-20 opacity-0 hover:opacity-100 bg-blue-400/50 transition-opacity" />
                     )}
-                    <div className="px-4 py-2 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 rounded-t-xl font-semibold text-slate-800 dark:text-slate-200">
+                    {presentActive && (
+                        <button
+                            type="button"
+                            onClick={() => setMobileHeadOpen(v => !v)}
+                            title={mobileHeadOpen ? 'Hide the chart controls' : "Show this chart's controls (type, fields, legend, options)"}
+                            aria-label="Toggle chart controls"
+                            className={`chart-head-mini absolute top-1.5 right-1.5 z-30 w-7 h-7 items-center justify-center rounded-full border shadow-sm transition-colors ${mobileHeadOpen ? 'bg-blue-600 border-blue-600 text-white' : 'bg-white/90 dark:bg-slate-800/90 border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-300'}`}
+                        >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24"><path d="M4 8h10M18 8h2M4 16h4M12 16h8" /><circle cx="16" cy="8" r="2" /><circle cx="10" cy="16" r="2" /></svg>
+                        </button>
+                    )}
+                    <div className={`chart-head ${mobileHeadOpen ? 'chart-head-open' : ''} px-4 py-2 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 rounded-t-xl font-semibold text-slate-800 dark:text-slate-200`}>
                         <div className="flex items-start gap-2">
                             {onReorderStart && (
                                 <span draggable onDragStart={onReorderStart} onDragEnd={onReorderEnd} title="Drag to reorder" className="cursor-grab active:cursor-grabbing self-center shrink-0 -ml-1 pr-0.5 text-slate-300 dark:text-slate-600 hover:text-slate-500 dark:hover:text-slate-400"><GripIcon /></span>
@@ -2925,10 +2959,31 @@
             };
             useEffect(() => {
                 if (!presentMode) return;
-                const onKey = (e) => { if (e.key === 'Escape') togglePresentMode(); };
+                const onKey = (e) => {
+                    if (e.key !== 'Escape') return;
+                    // On gate-sized screens exiting would strand the user in the blocked workbench.
+                    if (window.matchMedia && window.matchMedia('(max-width: 1299px), (max-height: 409px)').matches) return;
+                    togglePresentMode();
+                };
                 window.addEventListener('keydown', onKey);
                 return () => window.removeEventListener('keydown', onKey);
             }, [presentMode, sidebarVisible, chartConfig.controlsCollapsed, accordionState]);
+            // Present mode bypasses the small-screen gate (see body.clues-presenting CSS).
+            useEffect(() => {
+                document.body.classList.toggle('clues-presenting', !!presentMode);
+                return () => document.body.classList.remove('clues-presenting');
+            }, [presentMode]);
+            // Compact-screen flag (phones, small windows): legends render at a reduced font so they
+            // don't swallow the shrunken plot area. State, so charts re-render on breakpoint crossings.
+            const [compactScreen, setCompactScreen] = useState(() => !!(window.matchMedia && window.matchMedia('(max-width: 1023px), (max-height: 500px)').matches));
+            useEffect(() => {
+                if (!window.matchMedia) return;
+                const mq = window.matchMedia('(max-width: 1023px), (max-height: 500px)');
+                const onChange = () => setCompactScreen(mq.matches);
+                if (mq.addEventListener) mq.addEventListener('change', onChange); else mq.addListener(onChange);
+                return () => { if (mq.removeEventListener) mq.removeEventListener('change', onChange); else mq.removeListener(onChange); };
+            }, []);
+            const legendFontPx = compactScreen ? Math.min(9, Number(chartConfig.legendFontSize) || 10) : chartConfig.legendFontSize;
             // Load the Google-Fonts stylesheet the first time any Roboto family is used anywhere
             // (chart font, titles, sections, presentation notes) - never fetched otherwise.
             useEffect(() => {
@@ -3225,6 +3280,16 @@
                     const restoredTimeCharts = stripChartPrefix(state.timeCharts, 'time_');
                     applyDataProcessing(raw, overrides, state.filters, state.colorBy, restoredRelCharts, restoredDistCharts, restoredCompCharts, restoredTimeCharts);
                 }
+
+                // LAST - after every setter above, so nothing re-applies the workbench flags:
+                // a session saved "to present" opens as the clean full-window presentation.
+                if (state.presentMode) {
+                    setSidebarVisible(false);
+                    setDescOpen(false);
+                    setChartConfig(p => ({ ...p, controlsCollapsed: true }));
+                    setAccordionState(p => ({ ...p, summary_rel: false, summary_dist: false, summary_comp: false, summary_time: false }));
+                    if (!CHART_TABS.includes(state.activeTab)) setActiveTab('relationships'); // a chart tab so the all-charts view engages
+                }
             };
 
             const loadWorkspace = (file) => {
@@ -3311,7 +3376,8 @@
                             }
                         }
                         // May prompt for a password if this portable was exported encrypted.
-                        restoreEmbeddedSession().then(ok => { if (ok) setActiveTab('description'); }); // portable first load: surface the embedded description
+                        // First load surfaces the description - unless the file was saved to open presenting.
+                        restoreEmbeddedSession().then(st => { if (st && !st.presentMode) setActiveTab('description'); });
                         return;
                     }
                     const saved = localStorage.getItem(AUTOSAVE_KEY);
@@ -3402,15 +3468,16 @@
                     for (;;) {
                         const pw = await askPassword('This shared file is password-protected. Enter its password to open it:', pwErr);
                         if (pw === null) return false;
-                        try { restoreState(JSON.parse(await decryptClueEnvelope(sampleWorkspaceState, pw))); return true; }
+                        try { const st = JSON.parse(await decryptClueEnvelope(sampleWorkspaceState, pw)); restoreState(st); return st; }
                         catch (e) { pwErr = 'Incorrect password. Try again.'; }
                     }
                 }
                 restoreState(sampleWorkspaceState);
-                return true;
+                return sampleWorkspaceState;
             };
             const loadSampleDataset = () => {
-                restoreEmbeddedSession().then(ok => { if (ok) setActiveTab('description'); }); // showcase: surface its description on load
+                // Surface the description on load - unless the session opens presenting (the deck IS the intro).
+                restoreEmbeddedSession().then(st => { if (st && !st.presentMode) setActiveTab('description'); });
             };
 
             const parseFile = (file) => {
@@ -6008,7 +6075,7 @@ with the analysis defaults, this block wins.
                     ...getLegendPreset(position, custom),
                     // Edge positions get the chrome too when one is configured (floating presets carry their own).
                     ...((chartConfig.legendBg || chartConfig.legendBorder) ? legendChrome(chartConfig.legendBg, chartConfig.legendBorder, chartConfig.legendBgOpacity) : {}),
-                    font: { size: chartConfig.legendFontSize, family: chartConfig.fontFamily, color: darkMode ? '#e2e8f0' : '#334155' }
+                    font: { size: legendFontPx, family: chartConfig.fontFamily, color: darkMode ? '#e2e8f0' : '#334155' }
                 };
             };
             const buildStyleLegend = (chart = {}) => {
@@ -6021,8 +6088,8 @@ with the analysis defaults, this block wins.
                 if (styleBy) titleParts.push(`<b>${escapeHtml(getCatAlias(styleBy))}</b>`);
                 return {
                     ...custom,
-                    font: { size: chartConfig.legendFontSize, family: chartConfig.fontFamily, color: darkMode ? '#e2e8f0' : '#334155' },
-                    ...(titleParts.length ? { title: { text: titleParts.join('<br>'), side: 'top', font: { size: chartConfig.legendFontSize, family: chartConfig.fontFamily, color: darkMode ? '#e2e8f0' : '#334155' } } } : {}),
+                    font: { size: legendFontPx, family: chartConfig.fontFamily, color: darkMode ? '#e2e8f0' : '#334155' },
+                    ...(titleParts.length ? { title: { text: titleParts.join('<br>'), side: 'top', font: { size: legendFontPx, family: chartConfig.fontFamily, color: darkMode ? '#e2e8f0' : '#334155' } } } : {}),
                     ...legendChrome(chartConfig.styleLegendBg, chartConfig.styleLegendBorder, chartConfig.styleLegendBgOpacity),
                     tracegroupgap: 4, // each entry is its own group - tighten to match the main legend's rhythm
                     itemsizing: 'constant',
@@ -8740,7 +8807,7 @@ with the analysis defaults, this block wins.
                                 type="button"
                                 onClick={togglePresentMode}
                                 title="Exit Present mode - restores your panels and toolbar (or press Esc)"
-                                className="fixed top-3 right-3 z-[1100] inline-flex items-center gap-1.5 rounded-full bg-slate-900/60 text-white text-xs font-semibold px-3 py-1.5 shadow-lg backdrop-blur-sm opacity-50 hover:opacity-100 transition-opacity"
+                                className="present-exit fixed top-3 right-3 z-[1100] inline-flex items-center gap-1.5 rounded-full bg-slate-900/60 text-white text-xs font-semibold px-3 py-1.5 shadow-lg backdrop-blur-sm opacity-50 hover:opacity-100 transition-opacity"
                             >
                                 <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" /></svg>
                                 Esc
