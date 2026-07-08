@@ -177,6 +177,9 @@
             <h1>Clues likes to stretch out</h1>
             <p>Its panels need a bit of room to breathe - about <b>1300 × 410&nbsp;px</b> - and this window is a touch smaller right now.</p>
             <p>Pop the window to full size, or hop onto a larger screen, and you're in. On a phone? Email yourself a link to <b>clues.ai</b> and open it on your computer to drop in your CSVs and start building.</p>
+            <p style="margin-top:6px;"><b>Received a Clues session?</b> Presentations play right here, on any screen:</p>
+            <button id="mg-open-btn" type="button" style="margin-top:2px;padding:12px 22px;border-radius:9999px;border:1px solid #3b82f6;background:#2563eb;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;box-shadow:0 6px 18px rgba(37,99,235,.35);">Open a shared session (.clue)</button>
+            <input id="mg-open-file" type="file" accept=".clue,.json" style="display:none;" />
         </div>
         <div class="mg-spacer"></div>
     </div>
@@ -2969,10 +2972,31 @@
                 return () => window.removeEventListener('keydown', onKey);
             }, [presentMode, sidebarVisible, chartConfig.controlsCollapsed, accordionState]);
             // Present mode bypasses the small-screen gate (see body.clues-presenting CSS).
+            // gateBoot keeps the app visible while a session picked FROM the gate loads (password
+            // prompts, errors) before presentMode lands.
+            const [gateBoot, setGateBoot] = useState(false);
+            const gateBootRef = useRef(false);
             useEffect(() => {
-                document.body.classList.toggle('clues-presenting', !!presentMode);
+                document.body.classList.toggle('clues-presenting', !!presentMode || gateBoot);
                 return () => document.body.classList.remove('clues-presenting');
-            }, [presentMode]);
+            }, [presentMode, gateBoot]);
+            // The gate's "Open a shared session" button: phones can't reliably run a portable HTML
+            // file, but they CAN open a .clue right here - and a session opened from the gate always
+            // presents (the workbench needs a big screen; the presentation doesn't).
+            useEffect(() => {
+                const btn = document.getElementById('mg-open-btn');
+                const inp = document.getElementById('mg-open-file');
+                if (!btn || !inp) return;
+                const onBtn = () => inp.click();
+                const onFile = (e) => {
+                    const f = e.target.files && e.target.files[0];
+                    if (f) { gateBootRef.current = true; setGateBoot(true); loadWorkspace(f); }
+                    e.target.value = '';
+                };
+                btn.addEventListener('click', onBtn);
+                inp.addEventListener('change', onFile);
+                return () => { btn.removeEventListener('click', onBtn); inp.removeEventListener('change', onFile); };
+            }, []);
             // Compact-screen flag (phones, small windows): legends render at a reduced font so they
             // don't swallow the shrunken plot area. State, so charts re-render on breakpoint crossings.
             const [compactScreen, setCompactScreen] = useState(() => !!(window.matchMedia && window.matchMedia('(max-width: 1023px), (max-height: 500px)').matches));
@@ -3282,8 +3306,13 @@
                 }
 
                 // LAST - after every setter above, so nothing re-applies the workbench flags:
-                // a session saved "to present" opens as the clean full-window presentation.
-                if (state.presentMode) {
+                // a session saved "to present" opens as the clean full-window presentation. A session
+                // opened FROM the small-screen gate presents too, whatever its saved mode - on a phone
+                // the presentation is the only usable form.
+                const gateLoad = gateBootRef.current && window.matchMedia && window.matchMedia('(max-width: 1299px), (max-height: 409px)').matches;
+                gateBootRef.current = false;
+                if (state.presentMode || gateLoad) {
+                    if (!state.presentMode) setPresentMode(true);
                     setSidebarVisible(false);
                     setDescOpen(false);
                     setChartConfig(p => ({ ...p, controlsCollapsed: true }));
