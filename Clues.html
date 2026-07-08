@@ -1412,13 +1412,28 @@
             });
         };
 
-        const PlotlyChart = ({ chartId, data, layout, config, onRelayout, onSelected, onDeselect, onRestyle, onLegendClick, spin }) => {
+        const PlotlyChart = ({ chartId, data, layout, config, onRelayout, onSelected, onDeselect, onRestyle, onLegendClick, spin, eager }) => {
             const divRef = useRef(null);
             const dataStr = JSON.stringify(data);
             const layoutStr = JSON.stringify(layout);
             const configStr = JSON.stringify(config || {});
-            
+            // Lazy mounting: a chart only builds once it comes within ~600px of the viewport, then
+            // stays live. With many charts (Present mode especially, and especially on phones) this
+            // turns "draw 19 Plotly figures at once" into "draw the two you can see".
+            // `eager` opts out (facet panels: the stitched export needs every panel live).
+            const [armed, setArmed] = useState(!!eager || typeof IntersectionObserver === 'undefined');
             useEffect(() => {
+                if (armed) return;
+                const node = divRef.current; if (!node) return;
+                const io = new IntersectionObserver((entries) => {
+                    if (entries.some(e => e.isIntersecting)) { setArmed(true); io.disconnect(); }
+                }, { rootMargin: '600px 0px 600px 0px' });
+                io.observe(node);
+                return () => io.disconnect();
+            }, [armed]);
+
+            useEffect(() => {
+                if (!armed) return;
                 if (!divRef.current) return;
                 const node = divRef.current;
                 let cancelled = false;
@@ -1437,11 +1452,12 @@
                     });
                 });
                 return () => { cancelled = true; };
-            }, [dataStr, layoutStr, configStr]); 
+            }, [armed, dataStr, layoutStr, configStr]);
 
             useEffect(() => {
                 const node = divRef.current;
-                if (!node || (!onRelayout && !onSelected && !onDeselect && !onRestyle && !onLegendClick)) return;
+                // node.on only exists once Plotly.react has initialized this div (armed + same-pass order).
+                if (!armed || !node || typeof node.on !== 'function' || (!onRelayout && !onSelected && !onDeselect && !onRestyle && !onLegendClick)) return;
                 const relayoutHandler = (eventData) => onRelayout && onRelayout(eventData);
                 const selectedHandler = (eventData) => onSelected && onSelected(eventData);
                 const deselectHandler = () => onDeselect && onDeselect();
@@ -1460,13 +1476,13 @@
                     if (onRestyle) node.removeListener('plotly_restyle', restyleHandler);
                     if (onLegendClick) node.removeListener('plotly_legendclick', legendClickHandler);
                 };
-            }, [onRelayout, onSelected, onDeselect, onRestyle, onLegendClick]);
+            }, [armed, onRelayout, onSelected, onDeselect, onRestyle, onLegendClick]);
             
             useEffect(() => {
                 if (!divRef.current) return;
                 const resizeObserver = new ResizeObserver(() => {
                     window.requestAnimationFrame(() => {
-                        if (divRef.current) Plotly.Plots.resize(divRef.current);
+                        if (divRef.current && divRef.current._fullLayout) Plotly.Plots.resize(divRef.current);
                     });
                 });
                 resizeObserver.observe(divRef.current);
@@ -1476,7 +1492,7 @@
             // Slow auto-orbit of a 3D scene: sweep the camera left<->right and up<->down on a
             // sinusoid so depth reads. Throttled to ~25fps; only the camera moves (no data recompute).
             useEffect(() => {
-                if (!spin) return;
+                if (!spin || !armed) return;
                 const node = divRef.current;
                 if (!node) return;
                 let raf, running = true, last = 0;
@@ -6720,7 +6736,7 @@ with the analysis defaults, this block wins.
                                 const flayout = buildFacetPanelLayout(family, chart, fv, false, rev);
                                 return (
                                     <div key={fv} className="h-[300px] rounded border border-slate-100 dark:border-slate-700">
-                                        <PlotlyChart chartId={`${idPrefix}-${chart.id}-f${i}`} data={ftraces} layout={flayout} config={getPlotlyConfig(chart)} />
+                                        <PlotlyChart chartId={`${idPrefix}-${chart.id}-f${i}`} data={ftraces} layout={flayout} config={getPlotlyConfig(chart)} eager />
                                     </div>
                                 );
                             })}
