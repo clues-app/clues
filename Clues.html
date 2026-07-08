@@ -41,6 +41,12 @@
            polite "make the window bigger" notice instead. Pure CSS - fires for small windows,
            small screens, and phones alike. */
         #mobile-gate { display: none; }
+        /* No-JS / sandboxed-preview handling: interactive gate pieces only show when scripts run
+           (a tiny inline script tags the body); the amber "this is a preview" notice shows otherwise. */
+        #mg-open-btn, #mg-open-hint { display: none; }
+        body.js-live #mg-open-btn { display: inline-block; }
+        body.js-live #mg-open-hint { display: block; }
+        body.js-live #mg-nojs { display: none; }
         @media (max-width: 1299px), (max-height: 409px) {
             #root { display: none !important; }
             #mobile-gate {
@@ -162,6 +168,7 @@
     </style>
 </head>
 <body class="bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 h-screen overflow-hidden transition-colors duration-200">
+    <script>document.body.classList.add('js-live');</script>
     <div id="root" class="h-full">
         <!-- Static splash shown instantly while Babel transpiles; React replaces #root on mount. -->
         <div style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:#0f172a;z-index:9999;font-family:sans-serif;color:#94a3b8;">
@@ -177,9 +184,10 @@
             <h1>Clues likes to stretch out</h1>
             <p>Its panels need a bit of room to breathe - about <b>1300 × 410&nbsp;px</b> - and this window is a touch smaller right now.</p>
             <p>Pop the window to full size, or hop onto a larger screen, and you're in. On a phone? Email yourself a link to <b>clues.ai</b> and open it on your computer to drop in your CSVs and start building.</p>
-            <p style="margin-top:6px;"><b>Received a Clues session?</b> Presentations play right here, on any screen:</p>
+            <p id="mg-open-hint" style="margin-top:6px;"><b>Received a Clues session?</b> Presentations play right here, on any screen:</p>
             <button id="mg-open-btn" type="button" style="margin-top:2px;padding:12px 22px;border-radius:9999px;border:1px solid #3b82f6;background:#2563eb;color:#fff;font-size:1rem;font-weight:700;cursor:pointer;box-shadow:0 6px 18px rgba(37,99,235,.35);">Open a shared session (.clue)</button>
             <input id="mg-open-file" type="file" accept=".clue,.json" style="display:none;" />
+            <p id="mg-nojs" style="margin-top:6px;padding:12px 16px;border:1px solid #f59e0b;border-radius:12px;background:rgba(245,158,11,.12);color:#fcd34d;max-width:34rem;">You seem to be viewing this inside an email or file <b>preview</b>, which cannot run apps - nothing here will respond. On a <b>computer</b>: download this file and double-click it. On a <b>phone</b>: ask the sender for the <b>.clue</b> session file and open it at <b>clues.ai</b>.</p>
         </div>
         <div class="mg-spacer"></div>
     </div>
