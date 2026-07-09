@@ -58,3 +58,5 @@ portables/
 # OS / editor cruft
 Thumbs.db
 .idea/
+# Published demo sessions - the ONLY .clue files that ship
+!examples/*.clue
