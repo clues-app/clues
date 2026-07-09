@@ -7,6 +7,7 @@ Short notes on what's new. The full manual is the [User Guide](USER_GUIDE.md).
 - **Reorder the deck's sections.** Drag a section heading (Relationships, Over Time...) onto another in the all-charts view and the presentation plays in your order - menu and arrows follow.
 - **Hide the analysis tables.** One checkbox in Chart & Axis Layout turns the per-family analysis tables off entirely, for a charts-only deck.
 - **Fix:** inline title edits no longer accumulate invisible bold/italic tags around the text.
+- **Deleted rows are kept, not erased.** A source-update deletion now marks the row **Deleted** in Raw data (excluded from charts, restorable with a comment) instead of removing it - full history, and per-row revert keeps working.
 
 ## 2026-07-08 (later)
 
