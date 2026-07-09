@@ -8,6 +8,9 @@ Short notes on what's new. The full manual is the [User Guide](USER_GUIDE.md).
 - **Hide the analysis tables.** One checkbox in Chart & Axis Layout turns the per-family analysis tables off entirely, for a charts-only deck.
 - **Fix:** inline title edits no longer accumulate invisible bold/italic tags around the text.
 - **Deleted rows are kept, not erased.** A source-update deletion now marks the row **Deleted** in Raw data (excluded from charts, restorable with a comment) instead of removing it - full history, and per-row revert keeps working.
+- **Fresh data inside the presentation.** Decks with a connected source get a refresh button in the presentation bar (amber when updates are pending) - check, review, and accept without leaving Present. Phone viewers finally have a door to current data.
+- **Automatic reconciliation.** A status pill on the Raw data tab continuously verifies that the data equals the original file plus exactly the documented edit log - undocumented changes, inconsistent log entries, and removed log entries are named row by row, no passphrase needed. And when a source update touches a cell you also edited by hand, the review dialog now lists it in a Conflicts group so the overwrite is a conscious choice.
+- **Audit trail grows up: custody signature chains.** Sign the data *as it is now*, at any stage - your signature certifies that every later change is documented. Colleagues add their own signatures on top; signatures interlock so nobody can quietly alter or strip an earlier one, and only the newest can be removed, by its owner, with its passphrase. Pick any signature and run its integrity check to verify "my snapshot plus only documented edits since."
 
 ## 2026-07-08 (later)
 
