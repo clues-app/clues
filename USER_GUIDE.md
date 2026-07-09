@@ -71,6 +71,8 @@ You can start in several ways:
 
 When you drop a fresh CSV, Clues **does not** throw you into a random chart - it opens **Overview** so you start from an informed picture of your data.
 
+**Connected data source (Google Sheet / CSV link).** On the **Raw data** tab, **Connect source** links your session to a live table: paste a link to a **Google Sheet** (shared *"anyone with the link"* or published to the web) or any **CSV URL**. Clues asks one question - *which column(s) uniquely identify a row?* - suggests columns that qualify (a sample ID, specimen code...), and validates your choice live; you can also combine columns. From then on, your session **keeps its own copy of the data**: the link is only used to **check for updates** (automatically when the session opens, or via the source button). When the source differs, a review dialog lists exactly what **changed**, what's **new**, and what was **deleted** - you accept with a **comment**, and every applied change lands in the **edit log** like a documented hand edit. Decline and nothing moves. Notes: Google caches published sheets for a few minutes, so "live" means minutes-fresh; a link-shared sheet is readable by anyone holding the URL; and everything still works offline from your session's own copy - recipients of your `.clue` don't need the link at all.
+
 <img src="docs/images/2011_airports.gif" alt="Loading data" style="zoom:150%;" />
 
 

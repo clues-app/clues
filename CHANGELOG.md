@@ -2,6 +2,10 @@
 
 Short notes on what's new. The full manual is the [User Guide](USER_GUIDE.md).
 
+## 2026-07-08 (later)
+
+- **Connected data source.** Link a session to a Google Sheet (shared by link or published) or any CSV URL from the Raw data tab. Clues checks for updates, shows exactly what changed / arrived / disappeared, and applies updates only when you accept them with a comment - every change is recorded in the edit log, so shared decks stay both current and accountable. Your session always keeps its own copy of the data; offline use and sharing are unchanged.
+
 ## 2026-07-08
 
 - **Presentation view vs Workspace view.** Chart sizes, placed notes, and the deck background now live on the "stage" - the 1-column layout with the side panel hidden, and Present mode. The everyday dashboard stays compact and neutral, and each view remembers its own chart heights. Nothing is ever reset by switching.
