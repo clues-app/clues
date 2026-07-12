@@ -161,7 +161,7 @@ Types: **Box**, **Violin**, **Histogram**, **ECDF**, **Ridgeline**, and **3D His
 
 | Type | What it shows |
 |---|---|
-| **Bar** | A metric across categories (group-by + facet supported). |
+| **Bar** | A metric across categories (group-by + facet supported) - see the bar toolbox below. |
 | **KPI number** | A single big number (mean/median/sum/min/max/count) with a vs-all-data delta. |
 | **Gauge** | The same aggregate as a dial. |
 | **Pie / Donut** | Share of a whole by category. |
@@ -174,6 +174,17 @@ Types: **Box**, **Violin**, **Histogram**, **ECDF**, **Ridgeline**, and **3D His
 
 ![Comparisons](docs/images/11-comparisons.png)
 
+**The bar toolbox.** Bar charts carry the full Excel-style kit, right in the chart's toolbar:
+
+- **Vertical or horizontal** bars, and a **Split** by a second category that renders as **side-by-side**, **stacked**, or **overlapping** series - overlap uses Excel's *series overlap* idea, with a slider for how far the bars shift into each other.
+- **Width %** sets how much of each slot the bars fill (Excel's gap width, inverted).
+- **Fill**: solid, **Gradient (one color)** - light-to-dark shades of the series color by value - or **Gradient (color scale)** along the chart's colorscale (with a Reverse toggle). Shown when the chart has no Split, since split-series colors carry meaning.
+- **Hatch patterns** (stripes, crosses, dots...) over any fill - or *auto*, giving each split series its own pattern, which also keeps series tellable-apart in black-and-white prints.
+- **Borders**: width and color per chart, or automatic.
+- **Error bars** with meaning: **±1 SD** (spread of the rows), **± SEM** (precision of the mean), **95% CI**, or off - and every hover spells out the value, the type, and the group's *n*, so the whisker is never a mystery.
+- **Bar + line combo**: overlay a second measure as a line on its own right-hand axis.
+
+The AI can drive all of it with the `chart_bars` op ([§12](#12-ai-assistant---copy-context--import-spec)).
 
 ### 4.4 Over Time - trends on a date axis
 
@@ -308,6 +319,14 @@ Each chart card has a header with its **type** and field pickers, and a **⋮ op
 
 **Hide series from the legend (persisted).** Click a series in the **legend** to hide it (Plotly's built-in behavior; double-click a series to isolate just that one). Clues now **remembers which series you hid per chart** - so it survives reload, session save, and sharing. When any series is hidden, a **funnel icon** appears in the header (next to the style-link toggle); click it to **show all series again**. On a scatter with a **Style** field (3rd field), clicking a value in its **style legend** also **filters those points out** of the chart (the swatch grays to show it's off) - the same funnel icon resets it. From options you can: show/hide the **title**, value **labels**, and **legend**; toggle the **trendline** + formula; set per-chart **Title** typography (**size, Bold, Italic, color**), a **Title position** (the little square - click a side to put the title **top / bottom / left / right**; handy when a treemap grows on drill-down and crowds a top title), and a **Subtitle**; add **notes**; **download the chart** as a **PNG** (raster, universal) or a **Vector (SVG)** - vector stays crisp at any size and is editable in Word/PowerPoint/Excel via *Insert the .svg → Convert to Shape* (SVG is offered only for charts Plotly can vectorize, so it's hidden on 3D, **tile** maps, parallel-coordinates, and the scatter matrix - but an **Outline**-basemap map *is* vector, so it can be saved as SVG); **Snapshot (with caption)**; **Duplicate** the chart (an independent copy you can restyle without touching the original); reset zoomed axes; and **remove** the chart.
 
+**Annotate Chart** (⋮ menu, on scatter, density, bar, histogram, box, violin, and time-series charts): draw **inside** the plot itself - the storytelling layer that lives *on* the data rather than beside it. Three kinds, all saved with the session and rendered in exports:
+
+- **Shaded areas** - a colored band behind the data between two X values (a season, a campaign) or two Y values (a target range, spec limits), with an optional small caption.
+- **Marker lines** - a dashed vertical line at a date or value ("policy change", "outbreak") or a horizontal threshold line, labeled, with dash style and color.
+- **Notes in the chart** - short text pinned to a data coordinate, with an optional arrow pointing at the spot.
+
+Positions accept whatever the axis shows: numbers, dates (`2026-07-01`), or category names. And once drawn, annotations are **draggable like the legend**: pull a note's text to reposition it (its arrow keeps pointing at the anchored data point), drag the arrow's tip to re-aim it at a different point, and slide shade or marker captions wherever they read best - every drag is saved with the session. The AI drives them with `chart_shade`, `chart_marker`, and `chart_note` - each annotation has an id, so a later spec can edit or remove exactly one.
+
 > **Analysis tables.** Below each Graph Type sits a **summary table** (Relationship / Distribution / Comparison / Time Analysis) with a **Download Excel** button. For scatters it reports **N, correlation (r), R², slope, and intercept** per group - the trendline's numbers, not just its line. Each table **collapses** with the chevron in its header, and the choice saves with your session.
 
 - Click a chart's **title** to rename it - your text is kept and included in exports. (For bold/italic in the title text you can use HTML - `<b>…</b>`, `<i>…</i>`.)
@@ -399,6 +418,12 @@ Add a `ref` to a series op to affect **one chart only**. If the scope is unclear
 
 > **House style / your own Gem.** In Restyle mode, **Copy current styling** captures your current look as a styling spec. Save it, re-import it onto another dataset, or paste it into a **custom GPT / Gemini Gem** as your standing style - then just ask your AI to "apply my house style" and bring the result back. Style once; reproduce everywhere.
 
+> **Deep professional restyle - the whole deck in one pass.** Check *Deep professional restyle* before copying the Restyle context and the prompt becomes a full makeover brief: a coherent palette, one typography hierarchy, decluttering, tidy field names, structural fixes, and short reading-guidance notes on dense charts - and the assistant is told to state its assumptions and deliver ONE comprehensive spec rather than asking questions. Best used together with the contact sheet below: paste both, import the spec, re-shoot the sheet once for polish.
+>
+> **Your Gem and this brief divide the work.** Keep your *taste* in the Gem / custom GPT (your palette hex codes, fonts, structural rules - store them once with **Copy current styling**); the pasted context carries the *facts of this session* (charts, refs, current styles). The deep-restyle brief explicitly defers to a standing house style, so the two never fight - your Gem's colors win, the brief fills whatever your Gem doesn't cover.
+
+> **Give your AI eyes: the contact sheet.** Also in Restyle mode: **Contact sheet (PNG)** saves one image tiling every chart that's included in the presentation, each tile labeled `ref <id> - <title>`. Paste it into the chat together with the context and the assistant can *see* your deck - spot crowded titles, clashing colors, inconsistent looks - and reply with changes addressed to exact charts by ref. Charts you haven't visited yet are rendered in the background automatically - a big deck takes a few seconds before the save dialog appears. This is the low-round-trip way to ask for "make the whole deck look professional": context + sheet in one message, one comprehensive spec back, re-shoot the sheet for a final polish round.
+
 ![AI context](docs/images/gemini-gem.png)
 
 ### 12.2 Import AI spec
@@ -461,6 +486,8 @@ For situations where it matters that data wasn't quietly altered, Clues offers a
 - **Sign data** - at **any stage** of a project, sign the data **as it is right now** with your email + a passphrase. Your signature says: *"from this moment, every change to the data must be documented in the edit log."* You don't vouch for what happened before you - perfect for taking over a file a colleague already worked on. The passphrase is **not stored and not recoverable**.
 - **Pass it around** - each colleague can **add their own signature** on top (own email, own passphrase). Signatures **interlock**: each one also covers all earlier signatures, so nobody can quietly alter or strip an earlier signature without breaking every later one. Only the **newest** signature can be removed, only by its owner, with its passphrase - removing a middle one would break other people's attestations, so the app never offers it.
 - **Run integrity check** - pick your signature in the list and enter your passphrase; Clues rebuilds the data **as it was when you signed** (by unwinding the edit log) and confirms today's data is your signed snapshot **plus only documented changes** - reporting how many edits happened on your watch.
+
+**Data history & compaction.** Next to the sentinel pill, **History** opens a timeline of the edit journal: choose a measure, drag the slider through history, and watch its mean and the row count move - at every step the exact entry responsible is shown with its comment. When an auto-updating source has grown the journal large, **Compact** folds entries older than N days into the starting snapshot: the data stays identical, newer history keeps replaying entry by entry, and signatures keep verifying (the cut can never fold entries a signature protects - and old-format v1 signatures block compaction entirely). Folded entries stop being individually inspectable, so export the Excel workbook first if you need the complete log on file.
 
 **The reconciliation sentinel (automatic, no passphrase).** On the **Raw data** tab, a status pill reports continuously whether the ledger reconciles: **"✓ Ledger consistent"** means the current data equals the original file **plus exactly the documented edit log** - nothing more, nothing less. If anything diverges - a cell that changed with no log entry, a log entry whose "before" value doesn't match reality (a corrupted or forged log betrays itself), a signature that references more log entries than exist (entries were removed) - the pill turns **amber** and clicking it names every exception: row, field, expected vs found. This runs by itself on every change; passphrases are only needed for the cryptographic signature checks above.
 
