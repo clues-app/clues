@@ -10,7 +10,7 @@ It's built for people who have data and questions but don't want to code: scient
 > - **Every edit accounted for.** Sign your dataset, and Clues can later verify that the data is the signed source plus only its documented edits ([section 13](#13-data-audit-trail)).
 > - **Context travels with the figure.** Snapshots permanently caption the exact filters that produced them, and a shared session keeps charts live and explorable, not a dead PNG at the end of an email chain ([sections 9](#9-per-chart-controls-notes--snapshots) and [11](#11-saving--sharing)).
 
-> **The 30-second start:** Open `Clues.html` and click **Load original …** to load the built-in Palmer Penguins demo. It opens with a full set of charts already built, so you can click into any of them, filter, and explore before loading your own data.
+> **The 30-second start:** Open **clues.ai** (or `Clues.html`) and you're already in it - the app boots straight into the **Palmer Penguins showcase presentation**. Arrow through the slides, click into any chart, then press **Esc** to drop into the full workbench and explore. **Upload New Dataset** (top right) swaps in your own file. Returning visitors resume their own last session instead of the showcase; on a phone, the presentation plays full-screen (the workbench needs a bigger screen) and the presentation bar's folder button opens any shared `.clue`.
 
 ![Clues at a glance](docs/images/01-overview.png)
 
@@ -64,8 +64,8 @@ The **top toolbar** holds the dataset **Description** button, **Help & Guide**, 
 
 You can start in several ways:
 
-- **Upload CSV or Excel** - click the button, or **drag & drop** a `.csv`, `.xlsx`, or `.xls` onto the start screen ("Get your Clues!"). Excel workbooks are read with the bundled SheetJS (the same library that powers the Excel *export*, so no extra download); the **first sheet with data** is used, and dates come through as real dates. Everything stays in your browser.
-- **Load original …** - opens the built-in example dataset (Palmer Penguins) so you can explore immediately.
+- **The embedded showcase** - the app opens straight into it: Palmer Penguins with a full deck already built. After a **Clear Session**, the start screen's **Embedded** card offers it again behind two doors - **Workspace** or **Presentation**.
+- **Upload CSV, Excel or Clue** - on the start screen (shown after Clear Session, or whenever nothing is loaded), click the button or **drag & drop** a `.csv`, `.xlsx`, `.xls`, or `.clue`. Excel workbooks are read with the bundled SheetJS (the same library that powers the Excel *export*, so no extra download); the **first sheet with data** is used, and dates come through as real dates. Everything stays in your browser.
 - **Drop a `.clue` file** - restores a complete saved session (data + every filter, color, and layout choice).
 - Once data is loaded, use **Upload New Dataset** (top-right) to swap in a different file.
 
@@ -91,6 +91,8 @@ When you drop a fresh CSV, Clues **does not** throw you into a random chart - it
 ### 3.1 Description
 
 The **Description** view (also reachable from the top-left description button) is a free-text panel to record what the dataset is and what you're trying to show. It's saved with the session and written into the Excel export - handy for sharing context with colleagues.
+
+**Open the deck with it - the title slide.** The panel's **⋮ menu** (top right) can show the description as the **first Presentation slide**: the deck then opens with the dataset's name, its date, your description text, and optionally an **image** from the deck image library ([§7](#7-appearance--theming)) beside it. On the slide itself the text is **rich text** - select words and use the hover toolbar for bold/italic/underline, font, size, and color - and both the text block and the image **place freely**: drag them anywhere on the slide (the text by its grip, the image from anywhere) with the same blue snap guides as everything else, resize them by their handles, and add blank lines for breathing room - the slide grows so the first charts start below your content. Slide edits are a presentation-layer copy: this tab stays the plain-text source (what exports and the AI read), and the ⋮ menu's **Reset slide layout & formatting** returns the slide to mirroring it. In Present mode, **Description** becomes the first entry of the frozen menu, and the ‹ arrow steps back onto the slide.
 
 ![Description panel](docs/images/04-description.png)
 
@@ -133,7 +135,7 @@ Each **Graph Type** is a tab holding one or more chart cards. Add charts with **
 
 | Type | What it shows |
 |---|---|
-| **Scatter** | Two numeric fields as points. Supports **trendline + formula**, **jitter** (separates points stacked on a repeated axis, e.g. day counts; moves only the markers), **size-by** a measure, **style-by**/**color-by** a category, **marginals**, and **faceting** (small multiples) - with an optional **3D** layering of the facets. |
+| **Scatter** | Two numeric fields as points. Supports **trendline + formula** - straight, or **Smooth**: a LOESS curve with a 95% ribbon that follows the data's curvature (ggplot's `geom_smooth`; **Smooth only** hides the points for the pure relationship view) - **jitter** (separates points stacked on a repeated axis, e.g. day counts; moves only the markers), **size-by** a measure, **style-by**/**color-by** a category, **marginals**, and **faceting** (small multiples) - with an optional **3D** layering of the facets. |
 | **Density** | A binned density contour - reads dense scatter where points overplot. |
 | **Scatter matrix** | A grid of pairwise scatters across several measures. |
 | **Correlation heatmap** | Color-coded correlation between numeric fields. |
@@ -148,11 +150,15 @@ Each **Graph Type** is a tab holding one or more chart cards. Add charts with **
 ![Correlation heatmap](docs/images/09-relationships-heatmap.png)
 
 
+> **Log axes.** A small **log** checkbox next to the axis min/max controls turns an axis logarithmic (base 10): scatter and density X/Y, the bar value axis, time-series Y, and ECDF X. Manual ranges still take plain data values.
+
 > **Try it:** On a scatter, open the type dropdown and switch to **3D Scatter**, then check **spin** (the wave icon) to slowly rotate it.
 
 ### 4.2 Distributions - the shape of one measure
 
 Types: **Box**, **Violin**, **Histogram**, **ECDF**, **Ridgeline**, and **3D Histograms** (layered histograms stacked in 3D, one layer per category). Color/group by a category to compare distributions side by side; **facet** to split into small multiples.
+
+The point cloud beside a box or violin has its own **Dots** control: **Auto** (every point up to 10,000 rows, then outliers only), **All**, **Outliers**, or **None** - and it applies to **Split** sub-groups the same way.
 
 ![Distributions](docs/images/10-distributions.png)
 
@@ -177,14 +183,17 @@ Types: **Box**, **Violin**, **Histogram**, **ECDF**, **Ridgeline**, and **3D His
 **The bar toolbox.** Bar charts carry the full Excel-style kit, right in the chart's toolbar:
 
 - **Vertical or horizontal** bars, and a **Split** by a second category that renders as **side-by-side**, **stacked**, or **overlapping** series - overlap uses Excel's *series overlap* idea, with a slider for how far the bars shift into each other.
-- **Width %** sets how much of each slot the bars fill (Excel's gap width, inverted).
+- **Width %** sets how much of each slot the bars fill (Excel's gap width, inverted). With only a few categories, bars also **auto-narrow** so one lone bar doesn't swallow the plot - your Width % overrides.
+- **Sort** ranks the bars: high → low (the ranking view), low → high, or the data's own order - orientation-aware, and never confused by an overlaid combo line.
 - **Fill**: solid, **Gradient (one color)** - light-to-dark shades of the series color by value - or **Gradient (color scale)** along the chart's colorscale (with a Reverse toggle). Shown when the chart has no Split, since split-series colors carry meaning.
 - **Hatch patterns** (stripes, crosses, dots...) over any fill - or *auto*, giving each split series its own pattern, which also keeps series tellable-apart in black-and-white prints.
 - **Borders**: width and color per chart, or automatic.
-- **Error bars** with meaning: **±1 SD** (spread of the rows), **± SEM** (precision of the mean), **95% CI**, or off - and every hover spells out the value, the type, and the group's *n*, so the whisker is never a mystery.
-- **Bar + line combo**: overlay a second measure as a line on its own right-hand axis.
+- **Error bars** with meaning: **±1 SD** (spread of the rows), **± SEM** (precision of the mean), **95% CI**, or off - and every hover spells out the value, the type, and the group's *n*, so the whisker is never a mystery. Their color, thickness, and cap width are styleable too (via the AI's `chart_bars`).
+- **Bar + line combo**: overlay a second measure as a line on its own right-hand axis. The line has a **color swatch** in the toolbar (its dots and axis text follow; width and dash via the AI), an **Aa** box sizing the line axis's text, and a **↔** box setting the gap between that axis's caption and its numbers.
 
 The AI can drive all of it with the `chart_bars` op ([§12](#12-ai-assistant---copy-context--import-spec)).
+
+**Pie & donut** get their own knobs: the donut **hole** is adjustable (0 turns it into a full pie) and the slices can show **label + percent** (default), **label + value**, **percent**, **value**, **label**, or nothing - via the AI (`chart_display` → `donut_hole`, `pie_text`).
 
 ### 4.4 Over Time - trends on a date axis
 
@@ -197,6 +206,20 @@ Needs a date column. Plot a **time series**, switch on **Average with Spread Ban
 - can be removed with its **×**.
 
 Adding a measure switches the chart to multi-measure mode, so **Group by**, faceting, and the spread band step aside (each describes a single measure). Control charts stay single-measure, since their ±3σ limits describe one process.
+
+**The time toolkit.** Time-series charts carry a set of presentation-grade tools - all deterministic, computed only from the data in the file, and self-captioned so a shared chart explains itself:
+
+- **Timeline slider** - a draggable mini-timeline under the chart to zoom into any period. View-only: the dataset and the other charts are untouched.
+- **Time scrubber** - a slider that reveals the lines only **up to the chosen date**. Drag it while presenting and history animates forward under your control.
+- **Forecast** - extends each line into the future: a dotted **Holt-Winters** projection with an honestly **widening 95% band**. Seasonality is detected from your data's cadence (daily → weekly cycle, monthly → yearly...), the horizon is automatic or yours to set, and the hover names the model and the points it was fit on. No black box, no invented numbers - anyone you share with can reproduce it.
+- **Decompose** - splits each line into stacked **Observed / Trend / Seasonal / Residual** panels on one shared time axis (classical decomposition, with honest gaps where the centered window doesn't fit). It's the diagnostic view to run *before* trusting any forecast. Needs at least 7 time points.
+- **X ranges that speak date** - the X range control takes a year (`2008`) or a date (`2008-06-01`); reset clears it.
+
+**Three more chart types** live in this family's type picker:
+
+- **Bar race** - the trajectory view: as time plays (▶ Play, or drag the timeline), each category's line grows into a fixed full-time window - **Rank** over time by default (crossing lines are overtakes) or raw **Value** - and every line end is captioned with its current standing **and** value ("#2 France · 12.2 ▲1"). Tick **Bars** to add the classic racing-bars panel beside it (its captions then simplify), and set the **Speed** - the total duration of the whole race. Values carry forward when a category has no data at a date, colors follow your theme, and the animation saves with the session and plays in Present mode - the deck moment PowerPoint can't export.
+- **Bump** - the race's printable cousin: each category's **rank over time** as a static line, rank 1 on top, start ranks labeled on the left and final standings on the right ("#1 Chinstrap ▲2"). For reports and exports that can't animate.
+- **Candles (candlestick / OHLC)** - the financial classic. Pick the **Open, High, Low, Close** columns (auto-guessed from the near-universal column names) for green-up / red-down candles, or flip the toolbar switch to classic **OHLC bars**; the up/down colors have their own swatches. Dates with several rows aggregate honestly and deterministically: open = first, high = max, low = min, close = last - nothing is invented. Works with the timeline slider, log scale, and manual Y ranges.
 
 ![Over Time](docs/images/12-over-time.png)
 
@@ -279,6 +302,9 @@ Open the **Filters** tab in the sidebar.
 Open the **Appearance** tab. Every sub-section below has a **grip (⋮⋮)** in its header - **drag one onto another to reorder them** (put what you use most on top); the order is saved with your session.
 
 - **Chart & Axis Layout** - **1 or 2** columns; **font family**; **legend** position & size; **axis** ranges, fonts & **gridlines**; **Chart Title** typography - **font, size, Bold, Italic, and color** (global, with a reset); and the **chart background** (color + transparency) plus two page backgrounds: **Deck bg** (behind the cards in Presentation view - pick the second swatch for a top-to-bottom **gradient**) and **Workspace** (your everyday view). They're separate on purpose: a deck's theme color never follows you into daily work. A **Sections** row styles the family headings (*Relationships*, *Distributions*...) of the all-charts and Present views - font, Present-mode size, bold/italic, UPPERCASE on/off, and color. The sections can also be **reordered**: in the all-charts view, **drag a section heading onto another** and the deck plays in your order (the Present menu and arrows follow); charts still live in their families. An **Analysis tables** checkbox hides the per-family analysis tables entirely when you want charts only. *(Titles also stay editable inline - double-click a title on the chart to retype it.)*
+- **Looks (one-click themes)** - a gallery of complete looks: **Editorial** (the muted default palette - desaturated but separable, kind to projectors and printers; one click back after experiments), **Scientific** (colorblind-safe Okabe-Ito that survives grayscale print), and **Corporate Slate** (deep slate, soft periwinkle, warm amber). Each is a normal styling spec under the hood - it records in AI responses and is undoable there; sessions you already styled keep their exact look.
+- **Images (deck assets)** - link a folder of images (or add files) and Clues embeds **resized copies inside the session**, so decks stay self-contained and images travel with every shared `.clue`. Descriptions come from filenames or an optional `captions.json`, and a running size meter warns before the session gets heavy. Place one from any chart's **⋮ menu → Image beside Chart** (left / right / above / below), then drag it freely ([§9](#9-per-chart-controls-notes--snapshots)); the AI sees the library and places images itself (`deck_image`).
+- **Transparent charts & deck harmony** - slide the **chart background opacity to 0** and, in Presentation view, the plot *and its card* stop painting entirely: the deck background (solid or gradient) becomes the chart's real background. Or tick **Melt charts into the deck** to do it for **every** chart at once, with **faint gridlines** and text, axes, legends, and titles **auto-colored to contrast** with your page color (gradients are judged by their blend). Charts individually styled by the AI keep their own settings - `chart_canvas` gives any single chart its own background, ink, legend color, and **gridline color & opacity**. (Exports of transparent charts keep the transparency.)
 - **Series theme (defaults)** - the default **color, transparency, fill, shape, point size, thickness, and line style** for series 1, 2, 3 … When a category isn't individually styled, the theme decides its look. **Editing the theme changes *this session only*** (it saves and reloads with the `.clue`). Your **global default** (house style) - what every **new dataset** starts from - is set only when you click **★ Set as my default**, so *loading a session can never overwrite your default*. **Load my default** pulls your house style into the current session; **Reset to factory defaults** restores the built-in look.
 - **Series Styling & Aliases** - override **per category**: **color, transparency, fill, point size, thickness, marker shape, line style**, and a friendlier **display name (alias)**. The **style legend shows actual category names**, not generic swatches; the size legend reads *"Point size by [field]"* when size isn't uniform.
 - **Style-by field** - when a scatter has a secondary **Style** field, this styles points *by that field* using **line weight, opacity, and fill** (color and shape still come from the color field) - so one scatter can encode two categories at once. Like the theme, edits are **per session**; **★ Set as my default** saves the styling as a global house style that's reapplied to **matching fields** (same column + values) in new datasets, and **Load my default** pulls it back in.
@@ -302,6 +328,8 @@ Open the **Fields** tab. For each column you can:
 - **Date format** (date fields) - choose how dates render on axes and hovers.
 - **Map role** (numeric fields) - mark a column as **Latitude** or **Longitude** so it can drive a points map.
 
+**Unpivot (a view, not an edit).** The Fields tab also holds an **Unpivot** panel: pick two or more measure columns, name the pair (*Series* / *Value* by default), and flip **Use unpivoted view** - every chart now reads the long form, where the measures become a **category** you can group by, race, facet, or filter. Your stored table is untouched: Raw data, the edit journal, and signatures still describe the original wide data, and the switch is recorded in the lens journal like a filter change. Each view keeps its **own charts and filters** - flip back and your wide charts return exactly as you left them. The column chips stay live while the view is on: tap to add or remove measures and the view recomputes on the spot.
+
 ![Fields](docs/images/18-fields.gif)
 
 
@@ -315,7 +343,11 @@ Each chart card has a header with its **type** and field pickers, and a **⋮ op
 
 **Size and place the card** (in Presentation view): drag the **bottom edge** to make a chart taller. Drag the **right edge** to size its width (the left edge stays put) and the **left edge** to place it (the right edge stays put) - **you decide where the chart stands horizontally**, e.g. pushed right when its note sits on the left. **Shift+drag** either side edge moves the whole chart without resizing; edges **snap** to other charts' edges with a blue guide line. **Double-click** the right edge to reset to full width, the left edge to re-center. (On phones, cards always center.)
 
-**Presentation Note** (⋮ menu → *Show Presentation Note*, offered in Presentation view): free-standing **rich text** placed **left, right, above, or below** the chart - not inside its card, so it reads like slide copy sitting on the page. Type directly; hover or focus the text for a mini toolbar with **Bold / Italic / Underline**, **font**, **text size**, and **color** pickers (the color applies to the selected text, or to the whole note when nothing is selected), a **text-alignment** toggle (left / center / right), the four **position** buttons (L / R / T / B), and a close ✕ (the text is kept). Font menus across Clues (chart font, titles, sections, notes) include the **Roboto families** - fetched from Google Fonts only when selected, with a similar system font as the offline fallback. **Drag the note's chart-facing edge** to size it: beside the chart it sets the note column's width, above or below it sets the distance to the chart (double-click the edge to reset). A side note **hugs the chart** - when the chart has a width cap, the note and chart stay together, centered as a pair. It saves with the session and shines in **Present mode**, where a note **with content always shows** - the show/hide toggle only declutters the working view, so **empty the note** if you don't want it in the presentation. *(The amber Notes box is still there for working annotations - snapshots caption from it; the Presentation Note is the polished, audience-facing one.)*
+**Layouts that survive other screens.** Widths and positions can be **percents of the presentation band** ("58.3%" ≈ 7 columns of a 12-column grid) - the AI writes these natively - and they re-resolve live on whatever screen shows the deck. Dragged (pixel) geometry is covered too: the deck **remembers the screen it was designed on**, and Present mode **scales every measurement** - heights, widths, offsets, freely placed notes and images, the title slide - by the ratio to the current screen, in both directions. Tune the deck on your monitor and it fits the projector; adjustments made *while presenting* are stored back in design units, so the original layout never corrupts.
+
+**Free placement - notes and images.** Hover a presentation note and grab its **grip** (six dots, top left): the note converts to **free placement** - drop it anywhere on its chart's row, resize by its right edge; the L/R/T/B buttons return it to a column. Deck images drag freely from anywhere on the image, with a corner handle to resize (the left/right/above/below slots remain as starting points). Everything snaps to everything: charts, notes, and images share the same blue alignment guides on both axes. On phones, free placement gracefully flattens into the reading column.
+
+**Presentation Note** (⋮ menu → *Show Presentation Note*, offered in Presentation view): free-standing **rich text** placed **left, right, above, or below** the chart - not inside its card, so it reads like slide copy sitting on the page. Type directly; hover or focus the text for a mini toolbar with **Bold / Italic / Underline**, **font**, **text size**, and **color** pickers (each applies to the **selected text**, or to the whole note when nothing is selected), a **text-alignment** toggle (left / center / right), the four **position** buttons (L / R / T / B), and a close ✕ (the text is kept). Font menus across Clues (chart font, titles, sections, notes) include the **Roboto families** - fetched from Google Fonts only when selected, with a similar system font as the offline fallback. **Drag the note's chart-facing edge** to size it: beside the chart it sets the note column's width, above or below it sets the distance to the chart (double-click the edge to reset). A side note **hugs the chart** - when the chart has a width cap, the note and chart stay together, centered as a pair. It saves with the session and shines in **Present mode**, where a note **with content always shows** - the show/hide toggle only declutters the working view, so **empty the note** if you don't want it in the presentation. *(The amber Notes box is still there for working annotations - snapshots caption from it; the Presentation Note is the polished, audience-facing one.)*
 
 **Hide series from the legend (persisted).** Click a series in the **legend** to hide it (Plotly's built-in behavior; double-click a series to isolate just that one). Clues now **remembers which series you hid per chart** - so it survives reload, session save, and sharing. When any series is hidden, a **funnel icon** appears in the header (next to the style-link toggle); click it to **show all series again**. On a scatter with a **Style** field (3rd field), clicking a value in its **style legend** also **filters those points out** of the chart (the swatch grays to show it's off) - the same funnel icon resets it. From options you can: show/hide the **title**, value **labels**, and **legend**; toggle the **trendline** + formula; set per-chart **Title** typography (**size, Bold, Italic, color**), a **Title position** (the little square - click a side to put the title **top / bottom / left / right**; handy when a treemap grows on drill-down and crowds a top title), and a **Subtitle**; add **notes**; **download the chart** as a **PNG** (raster, universal) or a **Vector (SVG)** - vector stays crisp at any size and is editable in Word/PowerPoint/Excel via *Insert the .svg → Convert to Shape* (SVG is offered only for charts Plotly can vectorize, so it's hidden on 3D, **tile** maps, parallel-coordinates, and the scatter matrix - but an **Outline**-basemap map *is* vector, so it can be saved as SVG); **Snapshot (with caption)**; **Duplicate** the chart (an independent copy you can restyle without touching the original); reset zoomed axes; and **remove** the chart.
 
@@ -363,8 +395,8 @@ For **3D Scatter**, **3D Line**, and **3D Histograms**:
 
 ## 11. Saving & sharing
 
-- **Autosave** - your work is continuously saved in the browser, so a refresh keeps the latest state.
-- **Save Session** → a **`.clue`** file that captures your data **and** every filter, color, alias, layout choice, and AI-import record. Reopen with **Load Session** (or just drop the file in). Saves use your browser's folder picker and remember the destination; a message confirms where it went. **Optional password:** set one in the Save dialog to **encrypt** the file (AES-GCM) - anyone opening it in Clues must enter the password. It's fully offline and there's **no recovery for a forgotten password**. *(The interactive-share HTML can be password-protected too - see below.)*
+- **Autosave** - your work is continuously saved in the browser, so a refresh keeps the latest state. (Very large datasets that can't fit the browser's storage show a one-time notice that auto-recovery is off - use **Save Session** to keep your work.)
+- **Save Session** → a **`.clue`** file that captures your data **and** every filter, color, alias, layout choice, and AI-import record. Reopen with **Load Session** (or just drop the file in). Saves use your browser's folder picker and remember the destination **and the name**: the next Save prefills the last session name (which also travels inside the `.clue`, so a reopened session knows what it's called), and a message confirms where it went. **Optional password:** set one in the Save dialog to **encrypt** the file (AES-GCM) - anyone opening it in Clues must enter the password. It's fully offline and there's **no recovery for a forgotten password**. *(The interactive-share HTML can be password-protected too - see below.)*
 - **Export to Excel** → the filtered data plus a summary as an `.xlsx` workbook (your dataset description is included).
 - **Share (interactive)** → saves this whole session as one self-contained `.html` file. Anyone can open it in a web browser and explore the charts - no Clues, no install, no login. Ideal for a colleague who just wants to look and click. **Optional password:** set one in the Share dialog to **encrypt** the embedded session (AES-GCM) - the file then prompts for the password before it opens (no recovery if forgotten; once opened, the data lives in that browser). *(Note: only `.clue` files opened in your own copy of Clues are trustworthy for verification - see audit below.)*
 - **Open in Presentation mode** - both the Save and Share dialogs offer this checkbox: the saved `.clue` or shared HTML then opens **straight into the clean, full-window dashboard** (just the charts; Esc reveals the panels). Perfect for sending someone a finished dashboard rather than a workbench.
@@ -392,6 +424,7 @@ Click **AI context**. At the top, choose what you want the assistant to do:
 
 - **Restyle charts** (default) - change how existing charts *look*.
 - **Analyze & coach** - build charts and a reasoned plan for any question.
+- **Audit trail** - export the dataset's full provenance story (reconciliation verdict, edit-journal history with comments, source-update accepts, the custody signature chain, and the lens - filters and type changes) so a downstream colleague's AI can answer *"what happened to this data?"*. Honesty rules are baked in: the assistant must lead with any inconsistencies, and may describe signatures but never claim to have verified one - that takes a passphrase in Clues ([§13](#13-data-audit-trail)).
 
 The whole brief is wrapped in `<clues_context>…</clues_context>` tags. **Type your own request in plain words *outside* that block** (before or after) - the assistant answers whatever is outside the tags. Clicking **Copy** grabs it and **closes the dialog**.
 
@@ -412,7 +445,8 @@ The assistant returns one JSON **view spec**: an optional **hypothesis**, **char
 
 - **per series** - color, transparency, marker shape, point size, thickness, line style, fill, and rename;
 - **per chart** (by its `ref`) - title, axis range, colorscale, legend position, recolor, *size points by a measure*, **point jitter** (force on/off and scale the auto amount), and **overlay extra measures on a time series** (add or route lines to a left/right axis, or clear them);
-- **globally** (or per chart) - title typography (size, bold, italic, color, and **position**: top / bottom / left / right) and 1/2-column layout.
+- **globally** (or per chart) - title typography (size, bold, italic, color, and **position**: top / bottom / left / right) and 1/2-column layout;
+- **the deck** - chart sizes and grid placements in band percents (`chart_box`), deck images and their free positions (`deck_image`), presentation notes with full styling and free x/y (`chart_preso_note`), per-chart canvas: background/transparency, ink, legend, and gridline color & opacity (`chart_canvas`), the all-charts melt switch (`layout_style` → `deck_transparent`), the whole bar toolbox (`chart_bars`), and the time tools - range slider, scrubber, forecast, decompose, race trail, candle glyph and colors, donut hole, pie text, box dots (`chart_display`).
 
 Add a `ref` to a series op to affect **one chart only**. If the scope is unclear it asks first - **but if you narrow the picker to a subset, that *is* the scope**: the assistant confines every change to those charts (adding their `ref`, which makes them **independently styled** - the shared-style link is broken on purpose) and tells you it did so, leaving the rest untouched.
 
@@ -432,7 +466,7 @@ Click **Import AI spec**. **Paste the whole reply (Ctrl/⌘+V) - or leave the bo
 
 > **A conversational AI is expected now.** In Analyze & coach mode the assistant is asked to put its JSON first (in a collapsible ```json block) and then **talk to you** underneath: what the charts will show, what to look for, and the loop - *build these in Clues, snapshot the key ones, then paste the snapshots and the analysis-table figures back into the chat for a final read.* That's the intended human-in-the-loop cycle.
 
-Clues validates the spec against its own capabilities - rejecting unknown chart types, unknown columns, or encodings that break the rules (with a clear message) - then acts:
+Clues validates the spec against its own capabilities - rejecting unknown chart types, unknown columns, or encodings that break the rules (with a clear message). Ops that name a chart `ref` that doesn't exist are flagged in a red toast (refs come from the chart manifest in the copied context) rather than skipped silently. Then it acts:
 
 - **Charts** build immediately (appended, non-destructive).
 - **Styling** auto-applies (and is undoable per response).
@@ -449,7 +483,7 @@ Clues validates the spec against its own capabilities - rejecting unknown chart 
 
 ### 12.3 AI responses (Dataset → AI responses)
 
-A view under the **Dataset** group lists every import, each headed by a **one-line summary** of what you asked for (the assistant fills this in), so you can tell interactions apart at a glance. Each entry shows the **hypothesis**, the **charts it built** - each with **"Go to chart →"** (switches tab and **blinks the chart's frame**) - and the **suggestions** with full text and an **Apply** button you can use any time. Per import you also get **Rebuild charts**, **Revert styling (N)** (undo just that response's appearance changes), and **Remove**. AI-built charts carry a violet **"AI" badge**, and AI-written chart notes are prefixed with a **✨** (a "Clear AI notes" action strips them to hand over clean charts).
+A view under the **Dataset** group lists every import, each headed by a **one-line summary** of what you asked for, plus the spec's **provenance** - which AI produced it (`produced_by`) and its short notes on the approach - so someone opening the file next year knows what was done, by what, and why. Each entry shows the **hypothesis**, the **charts it built** - each with **"Go to chart →"** (switches tab and **blinks the chart's frame**) - and the **suggestions** with full text and an **Apply** button you can use any time. Per import you also get **Rebuild charts**, **Revert styling (N)** (undo just that response's appearance changes), and **Remove**. AI-built charts carry a violet **"AI" badge**, and AI-written chart notes are prefixed with a **✨** (a "Clear AI notes" action strips them to hand over clean charts).
 
 ![AI context](docs/images/styling.gif)
 ![AI context](docs/images/coach0.png)
@@ -489,6 +523,8 @@ For situations where it matters that data wasn't quietly altered, Clues offers a
 
 **Data history & compaction.** Next to the sentinel pill, **History** opens a timeline of the edit journal: choose a measure, drag the slider through history, and watch its mean and the row count move - at every step the exact entry responsible is shown with its comment. When an auto-updating source has grown the journal large, **Compact** folds entries older than N days into the starting snapshot: the data stays identical, newer history keeps replaying entry by entry, and signatures keep verifying (the cut can never fold entries a signature protects - and old-format v1 signatures block compaction entirely). Folded entries stop being individually inspectable, so export the Excel workbook first if you need the complete log on file.
 
+**The lens journal.** Changes to the *view* - filter edits, range limits, selection rules switching on or off, column-type changes, the unpivot view - are recorded as timestamped lens-history entries, saved with the session and reported in the Audit-trail AI context ([§12](#12-ai-assistant---copy-context--import-spec)). For anyone auditing charts these matter as much as edits: a filtered-out row is as invisible as a deleted one. Kept deliberately separate from the data journal - signatures and reconciliation are untouched by view changes.
+
 **The reconciliation sentinel (automatic, no passphrase).** On the **Raw data** tab, a status pill reports continuously whether the ledger reconciles: **"✓ Ledger consistent"** means the current data equals the original file **plus exactly the documented edit log** - nothing more, nothing less. If anything diverges - a cell that changed with no log entry, a log entry whose "before" value doesn't match reality (a corrupted or forged log betrays itself), a signature that references more log entries than exist (entries were removed) - the pill turns **amber** and clicking it names every exception: row, field, expected vs found. This runs by itself on every change; passphrases are only needed for the cryptographic signature checks above.
 
 > **Trust model, stated honestly:** the passphrase proves *continuity* ("the same person who signed is checking"), not *identity* - someone could sign under your name, but their signature won't verify with **your** passphrase, so you'd catch it on your next check. And verification is meaningful only for a `.clue` file opened in *your own* copy of Clues - an audit shown inside a received interactive-share (`.html`) file can't be trusted, because that file bundles the sender's app code. An unsigned file that *should* be signed is itself the red flag: keep your own signed copy as reference.
@@ -520,6 +556,7 @@ For situations where it matters that data wasn't quietly altered, Clues offers a
 - **Settings dot won't clear after removing filters?** It also covers column types, colors, formats, aliases, and selections - **hover it** to see what's still set.
 - **Tiles won't load offline?** Tile basemaps (Streets/Light/Dark) fetch map images from the internet; use **Outline** for fully offline work.
 - **Window too small / on a phone?** The full workbench needs a desktop-sized canvas (at least **1300 × 410 px**). On smaller screens Clues shows a notice instead of the app - but with an **"Open a shared session"** button: a `.clue` opened there plays as a full-screen presentation, so phones are first-class for *viewing* decks even though *building* them takes a desktop.
+- **Huge file feels heavy?** Clues adapts automatically: scatters above 2,500 points render on the graphics card, Smooth trendlines fit on a deterministic 1,500-point sample (the caption says so), and box dots switch to outliers-only past 10,000 rows. If the dataset is too large for the browser's storage, a notice tells you auto-recovery is off - use **Save Session**.
 - **Benign console messages** (Babel "large inline script", Tailwind CDN notice) are normal and don't indicate a failure.
 
 ---
