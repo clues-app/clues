@@ -116,7 +116,13 @@
             .deck-img-wrap { display: flex !important; flex-direction: column !important; align-items: stretch !important; }
             .deck-img-wrap .deck-img-holder, .preso-wrap .deck-img-holder { position: static !important; left: auto !important; top: auto !important; width: auto !important; max-width: min(80vw, 380px) !important; margin: 10px auto 0 !important; align-self: center !important; order: 99 !important; }
             .clues-title-slide { min-height: 0 !important; }
-            .chart-card-in { margin-left: auto !important; margin-right: auto !important; height: min(440px, calc(100dvh - 80px)) !important; }
+            /* Width caps and left offsets assume the wide band too: cards fill the row
+               (the flatten already centers them), so a landscape phone is all chart
+               instead of a squeezed column beside dead space. */
+            .chart-card-in { margin-left: auto !important; margin-right: auto !important; max-width: 100% !important; height: min(440px, calc(100dvh - 80px)) !important; }
+            /* Plotly's touch modebar doubles in size and squats on the plot - hide it on
+               the compact stage (pinch/hover/legend interactivity is untouched). */
+            body.clues-presenting .js-plotly-plot .modebar { display: none !important; }
             .preso-note-content, .preso-note-content * { font-size: 15px !important; }
             body.clues-presenting .chart-head { display: none !important; }
             /* ...but a tiny per-card button can summon the controls back (edit the chart, toggle
