@@ -1,0 +1,54 @@
+## Visual Presentation & Chart Polish Instructions
+
+### 1. Unified Categorical Color Palette
+Apply a consistent, high-contrast yet muted corporate palette across all grouped or faceted series to ensure immediate visual alignment across different charts:
+* **Primary / First Category Series:** `#435260` (Muted Slate / Deep Charcoal)
+* **Secondary / Second Category Series:** `#9fa8da` (Soft Pastel Periwinkle)
+* **Tertiary / Third Category Series:** `#ffcc80` (Warm Pastel Amber)
+* *Note:* Apply these consistently whether the field is used as a "Group By", a "Facet", or a "Split" across the workspace.
+  For scatter, violin, time series, and box plots, use a shade of the yellow color that is a tad darker (apply it per chart with `series_color` + that chart's `ref`). Do not apply that shade to all other charts.
+
+### 2.a Presentation Mode Blueprint
+
+**1. Global Presentation Canvas**
+* **Page Background:** Set the presentation page background (`page_bg`) to a gradient coloring from `#081a44` to `#203f88`. (New sessions already start with these exact colors as the default - emitting the op anyway is harmless and pins them.)
+* **Chart Panel Background:** Ensure the individual chart area background (`chart_bg`) remains a crisp, solid white to pop against the dark canvas.
+
+**2. Presentation Storytelling Notes & Layout**
+* **Chart size and location on the screen:** Lay out every chart on a 12-column grid of the presentation band, using percent values (they adapt to any screen - no pixel math, ignore the band width number in the context). For every chart that has a presentation note, emit:
+  `chart_preso_note` with `"position": "left"`, `"width": "33.3%"`, and `"left": "8.3%"` (the note spans columns 2-5)
+
+  Populate the content of each `chart_preso_note` with a title, followed by 3 or 4 sentences of the most relevant statistical or visual facts found about the corresponding chart. Each `chart_preso_note` and its corresponding chart form a slide of a presentation. Use formatting and bullet points to emphasize important facts and make the content suitable for a concise but precise fact about the data. If possible, insert empty rows between the title and the various sentences to make the text more readable. Use a bold Roboto rgb(255,255,255) 28px for the title.
+
+  `chart_box` with `"width": "41.7%"` and `"left": "50%"` (the chart spans columns 7-11, leaving column 6 empty as the gap after the note and column 12 as a right margin)
+
+  Always include the chart's `"left"` - a width without it centers the chart off the grid. Charts without a note: `chart_box` `"width": "83.3%"`, `"left": "8.3%"` (columns 2-11). When styling several notes consistently, set the FIRST note's full styling explicitly, then use `"match"` for the rest - match copies typography and width but never position offsets, so still include each note's own `"left": "8.3%"` alongside the match. After applying, remind me these render in Presentation view (side panel hidden - any column layout) or Present mode.
+* **Placement:** Position presentation notes explicitly to the **left** of the chart card.
+* **Typography & Contrast:** Force the note's base text color to pure white (`#ffffff`) so it is legible against the navy background. Use a clean sans-serif font (like the default or Roboto) with base text size `24px` (the app's default note size).
+* **Structure:** Left-align the note text. The note's width and its gap to the chart come entirely from the grid rule above (33.3% note, empty column 6 as the gap) - never also set pixel widths or pixel gaps.
+
+**3. Chart Panel Sizing**
+* **Dimensions:** Set a generous, fixed presentation height for the chart (e.g., `700px` to `800px`) and width via the grid rule above, so the chart takes up the dominant right-hand portion of the screen without clipping the left-hand notes.
+
+**4. Legend & Component Placement**
+* **Internal Legends:** Move chart legends inside the chart canvas rather than outside the bounding box to maximize layout real estate. `legend_position: "inside"` floats the main legend in the chart's top-right corner; for a specific corner use `chart_legend` with `"x"`/`"y"` (0..1 paper coordinates), and place the separate style-field legend with `"style_x"`/`"style_y"`.
+
+**5. Presentation Notes**
+* For each graph, fill in a well-thought-out and relevant presentation note based on the chart, the chart note, and the useful information as inferred from a title image that the user may have provided.
+
+### 2.b. Typography & Layout Blueprint
+* **Chart Titles:** Force a uniform hierarchy using **Roboto Condensed**, bold, in a deep slate charcoal color (`#2c3e50`). Leave sizes auto-calculated.
+* **Default Canvas Typography:** Set the global chart layout font to **Roboto** for a clean, editorial look.
+* **Clean Workspace Controls:** Set global axis sizes and legend font sizes to `11px` to prevent crowding. Turn off distracting minor gridlines to maximize data-to-ink ratio.
+* **Field Cleanup:** Automatically intercept and sanitize any raw database column syntax into standard title-case presentation text (e.g., convert `low_cap_name_g` to `Low Cap Name (g)`).
+
+### 3. Structural Makeovers
+* **Dual-Axis Alignment:** On multi-axis charts (such as bar + line combinations), force a layout gap of at least `45px` on the secondary axis title (`chart_bars` → `"line_axis_gap"`) to prevent its caption text from overlapping the numeric axis labels.
+* **Bar Enclosures:** Replace harsh, dark default borders on bar charts with a faint, professional frame color (`#4a4a4a`) via `chart_bars` `"border_color"`/`"border_width"`. (Treemap borders have no styling op - leave treemaps on their theme borders and say so rather than inventing parameters.)
+
+### 4. Audience-Facing Data Context
+* **In-plot annotations** (`chart_note`) pin text at **data coordinates** - `"x"`, `"y"`, and `"text"` are always required (x/y take numbers, dates, or category names), and they work only on scatter, density, bar, histogram, box, violin, and time-series charts. Use them to point an arrow at structural behavior, e.g. "width represents data density" on a violin - `11px`, dark neutral text color `#2c3e50`.
+* **Coordinate-free captions**: for chart types with generated axes (scatter matrices, parallel coordinates) or any general explanation that has no anchor point, use `chart_subtitle` instead - a small line under the chart's title. Never emit a `chart_note` without x/y.
+
+### 5. When No Op Fits
+If a request has no matching op in the provided context, say so in one sentence instead of guessing parameters - a rejected spec costs a full round trip.
