@@ -4,6 +4,7 @@ Short notes on what's new. The full manual is the [User Guide](USER_GUIDE.md).
 
 ## 2026-07-16
 
+- **No more title/note riding over the plot on phones.** The compact height clamp squeezed presenting cards around their already-scaled plots, pushing the title row and caption note into the chart. On stage, cards now wrap their content (the deck scaling already fits plots to the screen); the clamp still protects the non-presenting compact view.
 - **Landscape phones get a real deck.** Compact screens already flattened notes below their charts, but width caps and left offsets still applied - a landscape phone showed a squeezed chart beside dead space, under an oversized touch modebar. Cards now fill the row on compact screens and the modebar stays out of the way on stage.
 - **Showcase: the 3D scatter sits out of the presentation.** WebGL scenes can freeze rendering on phones; the chart stays in the workspace (Esc) and can be re-included from its chart menu.
 - **Looks now really apply.** A preset Look used to change only the default palette, which explicit per-category colors always beat - in any styled session the Apply button looked dead. Applying a Look now clears the per-category color overrides first (new theme_repaint op, also available to your AI), so the palette visibly repaints; symbols, opacities, and unlinked charts keep their styling, and the whole thing undoes in Dataset -> AI responses.

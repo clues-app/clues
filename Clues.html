@@ -120,6 +120,11 @@
                (the flatten already centers them), so a landscape phone is all chart
                instead of a squeezed column beside dead space. */
             .chart-card-in { margin-left: auto !important; margin-right: auto !important; max-width: 100% !important; height: min(440px, calc(100dvh - 80px)) !important; }
+            /* On stage the deck scaling already fits each plot to the screen - the height
+               clamp above then only squeezes the card around its fixed-height plot, pushing
+               the title row and the caption note INTO the plot. Let presenting cards wrap
+               their content instead. */
+            body.clues-presenting .chart-card-in { height: auto !important; min-height: 0 !important; }
             /* Plotly's touch modebar doubles in size and squats on the plot - hide it on
                the compact stage (pinch/hover/legend interactivity is untouched). */
             body.clues-presenting .js-plotly-plot .modebar { display: none !important; }
