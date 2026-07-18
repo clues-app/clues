@@ -4,6 +4,7 @@ Short notes on what's new. The full manual is the [User Guide](USER_GUIDE.md).
 
 ## 2026-07-16
 
+- **Showcase: the 3D scatter sits out of the presentation.** WebGL scenes can freeze rendering on phones; the chart stays in the workspace (Esc) and can be re-included from its chart menu.
 - **Looks now really apply.** A preset Look used to change only the default palette, which explicit per-category colors always beat - in any styled session the Apply button looked dead. Applying a Look now clears the per-category color overrides first (new theme_repaint op, also available to your AI), so the palette visibly repaints; symbols, opacities, and unlinked charts keep their styling, and the whole thing undoes in Dataset -> AI responses.
 - **AI specs may say "750px".** A px suffix on any numeric op parameter is now normalized away before validation - the most common AI formatting habit no longer costs a rejection round trip.
 - **Notes are read-only on stage.** In Present mode presentation notes show no toolbar and take no keystrokes until you double-click one to edit; clicking away re-locks it. Entering Present always starts locked. (The title slide is unchanged.)

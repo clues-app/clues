@@ -4,6 +4,8 @@
 
 It's built for people who have data and questions but don't want to code: scientists, analysts, lab managers, students. Drop a file in, and Clues profiles it, flags oddities, and suggests charts you can build with one click. It can also hand your AI assistant a precise brief and then build the charts the assistant designs, or restyle your existing charts to a saved house style.
 
+And Clues is not only a charting tool - **it turns the workspace into the presentation, without freezing the analysis**. The same session has two views: your working grid, and a polished narrative deck with notes, images, backgrounds, and slide navigation, where every chart stays live and explorable in front of the audience ([§9](#9-per-chart-controls-notes--snapshots)).
+
 > **Why Clues, when a chatbot can also draw a chart?** Because you can't cite a chat. A chatbot's chart is a one-off: the same request tomorrow gives different bins, colors, and layout, and the method lives in a transcript nobody can review. Clues works the other way around - the AI proposes, you review, Clues draws, deterministically, from your data, every time.
 >
 > - **Same chart, every time.** Every chart is defined by a compact spec, not a conversation. The spec is your methods section: inspectable, repeatable, shareable ([section 12](#12-ai-assistant---copy-context--import-spec)).
@@ -339,6 +341,8 @@ Open the **Fields** tab. For each column you can:
 
 Each chart card has a header with its **type** and field pickers, and a **⋮ options** button. A **chevron** at the far left **collapses that chart's control toolbar** (the type / field / axis pickers) into a thin bar for a cleaner, presentation-style view - the **⋮ options** menu and the link toggle stay reachable while collapsed.
 
+**The presentation IS the workspace.** Clues does not export slides. Workspace and Presentation are **two views of the same session**: every chart keeps one analytical configuration - data mappings, grouping, filters, styles - and remembers **separate dimensions and positions for each view**. Switching views re-composes the same objects (nothing is copied or flattened), and Presentation view additionally reveals each chart's optional **note** and **image**, the deck **background**, and **slide navigation** - while every chart stays fully interactive in front of the audience. Shared analysis, view-specific composition.
+
 **Presentation view vs. Workspace view.** The deck look - custom heights, widths, placements, presentation notes, and the Deck background - renders in **Presentation view**: the **side panel hidden** (the toggle at the top left) on any chart tab, and Present mode. The deck itself always lays out **1 column**, whatever your workspace grid. With the panel open you're in the everyday **Workspace view** - 1 or 2 columns, your choice: charts render full-width at compact defaults on the neutral background, and the width/placement handles and note controls step aside. **Heights stay free in both views** - drag the bottom edge anywhere, and each view remembers its own height, so a tall presentation chart doesn't stretch your working grid (and vice versa). **Nothing is reset** - your deck arrangement returns exactly as built the moment you step back on stage.
 
 **Size and place the card** (in Presentation view): drag the **bottom edge** to make a chart taller. Drag the **right edge** to size its width (the left edge stays put) and the **left edge** to place it (the right edge stays put) - **you decide where the chart stands horizontally**, e.g. pushed right when its note sits on the left. **Shift+drag** either side edge moves the whole chart without resizing; edges **snap** to other charts' edges with a blue guide line. **Double-click** the right edge to reset to full width, the left edge to re-center. (On phones, cards always center.)
@@ -415,6 +419,8 @@ For **3D Scatter**, **3D Line**, and **3D Histograms**:
 ## 12. AI assistant - copy context & import spec
 
 Clues can hand any AI assistant (ChatGPT, Claude, Gemini, …) a precise brief about **what it can do**, take back a JSON spec, and act on it - either **building an analysis** or **restyling your charts**. Two violet toolbar buttons drive it: **AI context** and **Import AI spec**. Because the brief is generated from Clues itself, the assistant can build **every chart type the app offers** and set **every style** you can set by hand.
+
+The AI context pairs naturally with a **standing house style** kept on the assistant's side: for Gemini users, a ready-made **Gem example** is provided in [Visual Presentation_Chart Polish_gem.txt](Visual%20Presentation_Chart%20Polish_gem.txt) - a corporate palette, presentation grid layout, typography, and annotation rules the assistant applies on top of the AI context. The same text works as custom instructions for ChatGPT or Claude.
 
 > **⚠ Use Clues from its official source.** The AI context you copy is a set of *instructions* your assistant will follow. A tampered copy of Clues could quietly inject hidden or malicious instructions into that text. Only run Clues from the **[official repository](https://github.com/clues-app/clues)** (or your own saved copy of it), and be cautious with a `Clues.html` someone else sends you.
 
