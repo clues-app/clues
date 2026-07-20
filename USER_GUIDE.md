@@ -239,6 +239,7 @@ Maps use Plotly's geographic traces - **no map token, and nothing baked into the
 Plot each row by **longitude (X)** and **latitude (Y)**. Controls:
 
 - **Basemap** - **Streets (auto)** (the default - street tiles that **follow the app theme**, so they turn **dark in Dark mode**), **Light**, **Dark** (explicit overrides that ignore the theme), or **Outline** (a plain country map, fully offline-friendly). The view **auto-zooms to your data** on first draw and keeps your pan/zoom afterward.
+- **Replay** (the **▶ selects**) - pick a field (usually the date), and the dots **appear one by one in that order, accumulating** into the full picture, with a **ticker** showing the current value; the loop restarts after a beat and runs until you press **⏸**. Speed: Normal / Slow / Fast; loops: x1 / x2 (default) / x3 / x5 / infinite - after the last loop the map rests at the full picture. The play state **saves with the session**, so a shared deck can open animating - earthquakes spreading across the map as the dates tick by. (AI: `chart_display` with `replay_field`, `replay`, `replay_speed`.)
 - **Blink** - pick a column, and every point where it's **true** (true / 1 / yes) **pulses** on the map. Made for live dashboards: add a computed column to your connected sheet (e.g. *"updated in the last 24 h"*) and the newest events catch the eye while the catalog stays calm. The pulse pauses in hidden tabs and is disabled for viewers whose system asks for reduced motion.
 - **Label** - which field names each point on hover (defaults to the first text column, e.g. a city or place name).
 - **Size** - scale points by a measure to make a **bubble map**. For uniform points, set the size with **Pt ×** in the series styling (Appearance or the chart's ⋮ menu).
@@ -256,6 +257,8 @@ Hovers show the label, every other measure (formatted to your Field settings), a
 ### 5.2 Map (regions) - choropleth, in *Comparisons*
 
 Shade regions by the average of a metric per region. Controls:
+
+- **Replay** (the **. selects**) - like the points map: pick an order field and the regions **recolor step by step** with the running per-region average as the ticker advances, then loop. The order is usually a **date** - but it can be the **metric itself**: with a single-period dataset (say, production by state for one year), replay by the metric lights the regions up **from lowest to highest**. Speed and loop settings match the points map.
 
 - **Location** - the column holding region identifiers.
 - **Basemap** - **Outline** (default: a plain map using Plotly's built-in country / US-state boundaries, no download) or a tile map (**Streets / Light / Dark**) that drapes your regions over an interactive world map.
