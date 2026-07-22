@@ -29,11 +29,11 @@ Clues doesn't export slides. **It turns the analytical workspace into the presen
 
 - **Zero-install, one file** - download `Clues.html`, open it, done.
 - **100% local & private** - client-side only; nothing is uploaded, no telemetry, no account. Optional **AES-GCM password encryption** on saved sessions and shared files.
-- **Loads CSV & Excel** - drag-and-drop a `.csv`, `.xlsx`, or `.xls`, or reopen a saved `.clue` session.
+- **Loads CSV, TSV & Excel** - drag-and-drop a `.csv`, `.tsv`, `.xlsx`, or `.xls`, or reopen a saved `.clue` session.
 - **Guided first read** - an automatic `describe()`-style profile with inline mini-histograms, `value_counts` sparklines, IQR outlier flags, and one-click chart suggestions.
 - **A full chart library**, all powered by [Plotly.js](https://plotly.com/javascript/):
   - **Relationships** - scatter (trendline, jitter, size / color / style-by, marginals, faceting), density, scatter matrix, correlation heatmap, **3D** scatter & line, parallel coordinates, **point maps**.
-  - **Distributions** - box, violin, histogram, ECDF, ridgeline, 3D histograms.
+  - **Distributions** - box, violin, histogram, ECDF, **Normal Q-Q**, ridgeline, 3D histograms.
   - **Comparisons** - bar, KPI, gauge, pie / donut, funnel, grid, Sankey, parallel categories, sunburst / treemap / icicle, **region maps (choropleth)**.
   - **Over Time** - time series, average + spread band, control charts (±3σ), and **multi-measure overlays** with an optional second axis.
 - **Maps with no token** - tile or plain outline basemaps for both points and regions; boundaries and tiles are fetched at render time so the file stays small.

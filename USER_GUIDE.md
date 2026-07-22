@@ -67,7 +67,7 @@ The **top toolbar** holds the dataset **Description** button, **Help & Guide**, 
 You can start in several ways:
 
 - **The embedded showcase** - the app opens straight into it: Palmer Penguins with a full deck already built. After a **Clear Session**, the start screen's **Embedded** card offers it again behind two doors - **Workspace** or **Presentation**.
-- **Upload CSV, Excel or Clue** - on the start screen (shown after Clear Session, or whenever nothing is loaded), click the button or **drag & drop** a `.csv`, `.xlsx`, `.xls`, or `.clue`. Excel workbooks are read with the bundled SheetJS (the same library that powers the Excel *export*, so no extra download); the **first sheet with data** is used, and dates come through as real dates. Everything stays in your browser.
+- **Upload CSV, Excel or Clue** - on the start screen (shown after Clear Session, or whenever nothing is loaded), click the button or **drag & drop** a `.csv`, `.tsv` (tab-separated), `.xlsx`, `.xls`, or `.clue`. Excel workbooks are read with the bundled SheetJS (the same library that powers the Excel *export*, so no extra download); the **first sheet with data** is used, and dates come through as real dates. Everything stays in your browser.
 - **Drop a `.clue` file** - restores a complete saved session (data + every filter, color, and layout choice).
 - Once data is loaded, use **Upload New Dataset** (top-right) to swap in a different file.
 
@@ -175,7 +175,7 @@ The point cloud beside a box or violin has its own **Dots** control: **Auto** (e
 | **Pie / Donut** | Share of a whole by category. |
 | **Funnel** | Stage-to-stage drop-off. |
 | **Grid** | A category × category heatmap of a metric. |
-| **Sankey** | Flows between two categories. |
+| **Sankey** | Flows between categories. Two data shapes: rows moving through the chosen columns (stages), or from/to edge lists - each row is one link between a From value and a To value, with a Width column (defaults to your first numeric column; the shape of an income statement). Names shared by both columns are one node, bands take the color of the node they leave, node labels carry totals (Amounts toggle), hover shows the exact amounts, and negatives draw red with a per-chart choice: red inflows (keep the recorded direction, signed totals), reversed (costs branch out of the node they drain), or dedicated red "(loss)" nodes. Amounts follow the width field's number format (Fields tab); an unformatted fraction column shows as percent (0.822 → 82.2%). |
 | **Parallel categories** | Ribbons linking categorical combinations. |
 | **Sunburst / Treemap / Icicle** | Hierarchical counts across nested categories. |
 | **Map (regions)** | Choropleth - see [Maps](#5-maps). |
