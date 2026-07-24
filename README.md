@@ -18,7 +18,7 @@ Because you can't cite a chat. A chatbot's chart is a one-off - ask again tomorr
 
 ## The presentation IS the workspace
 
-Clues doesn't export slides. **It turns the analytical workspace into the presentation - without freezing the analysis.** Presentation view is not a separate renderer or an output file: it is a second, polished view of the same live session.
+Clues turns the analytical workspace into the presentation - **without freezing the analysis.** Presentation view is not a separate renderer: it is a second, polished view of the same live session. (When a frozen handout is what you need, the deck also exports as a **PDF** or an **editable PowerPoint** - but the live session stays the primary artifact.)
 
 - **One session, two views.** Every chart keeps one analytical configuration - data mappings, grouping, filters, styles, statistics - and remembers **two layouts**: its place in your working grid, and its size and position on the presentation page. Switching views re-composes the same objects; nothing is exported, duplicated, or flattened.
 - **A narrative, not a dashboard.** The deck makes one deliberate point at a time - sections and slide-by-slide navigation, per-chart **rich-text notes** and **images**, a unified page background - instead of a wall of widgets competing for attention.
@@ -42,7 +42,7 @@ Clues doesn't export slides. **It turns the analytical workspace into the presen
 - **AI-assisted, two ways** - hand any assistant (ChatGPT, Claude, Gemini) a precise brief and import back a spec that **builds a coached analysis** or **restyles your charts**; a **Boost** mode turns the analysis into a presentation-ready story. A ready-made **Gem example** for Gemini users ships in [Visual Presentation_Chart Polish_gem.txt](Visual%20Presentation_Chart%20Polish_gem.txt) - a standing house style the assistant applies on top of the AI context.
 - **Evidence you can trust** - **snapshots** caption the exact filters that made them; a passphrase-signed **audit trail** and a **byte-exact source-file check** (SHA-256) back up provenance.
 - **A presentation view of the live workspace** - per-chart notes and images, deck backgrounds, slide navigation, separate chart layouts per view, and charts that stay explorable while you present.
-- **Portable & shareable** - save a full session as a `.clue`, or export **one self-contained interactive HTML** anyone can open in a browser (no Clues, no install), optionally password-protected.
+- **Portable & shareable** - save a full session as a `.clue`, or export **one self-contained interactive HTML** anyone can open in a browser (no Clues, no install), optionally password-protected. The deck also exports as a **PDF** (one slide per page, clickable contents) or an **editable PowerPoint** (charts as SVG - Convert to Shape in Office - notes as real text boxes).
 - **3D & animation** - rotate 3D scenes and export **spinning GIFs**.
 - **Dark mode**, plus a version footer that stamps every shared file with the build that produced it.
 
