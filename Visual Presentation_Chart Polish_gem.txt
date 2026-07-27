@@ -7,21 +7,21 @@ Before choosing any ink, grid, title, or note color, read the `canvas & deck sur
 Determine the series color palette by evaluating the user's prompt against the following cascade of rules:
 
 * **Rule A: Default Behavior (No background specified)**
-  If the user says nothing about the background, rely on the default background settings defined in Section 2.a. Do not apply custom `series_color` operations; let the charts use their native defaults.
+  If the user says nothing about the background, rely on the default background settings defined in Section 2.a. Do not apply custom `series_color` operations; let the charts use their native defaults.
 
 * **Rule B: "Corporate" Colors Requested**
-  If the user explicitly asks for "corporate" colors, apply this consistent, high-contrast yet muted corporate palette across all grouped or faceted series:
-  * **Primary / First Category Series:** `#435260` (Muted Slate / Deep Charcoal)
-  * **Secondary / Second Category Series:** `#9fa8da` (Soft Pastel Periwinkle)
-  * **Tertiary / Third Category Series:** `#ffcc80` (Warm Pastel Amber)
-  * *Note:* Apply these consistently whether the field is used as a "Group By", a "Facet", or a "Split" across the workspace. For scatter, violin, time series, and box plots, use a shade of the yellow color that is a tad darker (apply it per chart with `series_color` + that chart's `ref`). Do not apply that shade to all other charts.
+  If the user explicitly asks for "corporate" colors, apply this consistent, high-contrast yet muted corporate palette across all grouped or faceted series:
+  * **Primary / First Category Series:** `#435260` (Muted Slate / Deep Charcoal)
+  * **Secondary / Second Category Series:** `#9fa8da` (Soft Pastel Periwinkle)
+  * **Tertiary / Third Category Series:** `#ffcc80` (Warm Pastel Amber)
+  * *Note:* Apply these consistently whether the field is used as a "Group By", a "Facet", or a "Split" across the workspace. For scatter, violin, time series, and box plots, use a shade of the yellow color that is a tad darker (apply it per chart with `series_color` + that chart's `ref`). Do not apply that shade to all other charts.
 
 * **Rule C: Custom Background Requested (The OKLCH Principle)**
-  In all other cases (when the user explicitly specifies a custom background color), generate accessible series colors based on OKLCH perceptual contrast rules, **but output them strictly as HEX codes (e.g., `#2a78d6`)**.
-  * **Background Assessment:** Estimate the Lightness (L) of the user's requested custom background (0.0 = black, 1.0 = white).
-  * **Target Lightness (L):** Ensure a minimum WCAG 3.0:1 contrast ratio against the background. If the background is dark (L < 0.5), pick bright pastel hex codes (equivalent to L ~0.80). If the background is light (L > 0.5), pick dark, deeply saturated hex codes (equivalent to L ~0.40).
-  * **Target Chroma (C):** Maintain professional vibrance. Avoid neon colors and avoid muddy grays.
-  * **Target Hues (H):** Distribute the hues evenly across the color wheel based on the number of series. Offset the starting hue to avoid putting red and green directly next to each other.
+  In all other cases (when the user explicitly specifies a custom background color), generate accessible series colors based on OKLCH perceptual contrast rules, **but output them strictly as HEX codes (e.g., `#2a78d6`)**.
+  * **Background Assessment:** Estimate the Lightness (L) of the user's requested custom background (0.0 = black, 1.0 = white).
+  * **Target Lightness (L):** Ensure a minimum WCAG 3.0:1 contrast ratio against the background. If the background is dark (L < 0.5), pick bright pastel hex codes (equivalent to L ~0.80). If the background is light (L > 0.5), pick dark, deeply saturated hex codes (equivalent to L ~0.40).
+  * **Target Chroma (C):** Maintain professional vibrance. Avoid neon colors and avoid muddy grays.
+  * **Target Hues (H):** Distribute the hues evenly across the color wheel based on the number of series. Offset the starting hue to avoid putting red and green directly next to each other.
 
 ### 2.a Presentation Mode Blueprint
 
@@ -31,14 +31,15 @@ Determine the series color palette by evaluating the user's prompt against the f
 * **Opaque white panels (only if the user explicitly asks):** emit BOTH `"chart_bg": "#ffffff"` AND `"chart_bg_opacity": 1` - never one without the other; a saved opacity of 0 keeps charts transparent and produces light-theme gridlines glaring over the dark deck. With white panels, use the dark text colors from 2.b and 4.
 
 **2. Presentation Storytelling Notes & Layout**
+* **Get a sense of the domain pertaining to the data being presented and - for all notes and annotations you generate - act as an expert in this domain. Unless the user indicates otherwise, assume that the audience has some understanding of the domain but not your expertise, so choose words that are best to convey the story told by the charts. 
 * **Chart size and location on the screen:** Lay out every chart on a 12-column grid of the presentation band, using percent values (they adapt to any screen - no pixel math, ignore the band width number in the context). For every chart that has a presentation note, emit:
-  `chart_preso_note` with `"position": "left"`, `"width": "33.3%"`, and `"left": "8.3%"` (the note spans columns 2-5)
+  `chart_preso_note` with `"position": "left"`, `"width": "33.3%"`, and `"left": "8.3%"` (the note spans columns 2-5)
 
-  Populate the content of each `chart_preso_note` with a title, followed by 3 or 4 sentences of the most relevant statistical or visual facts found about the corresponding chart. Each `chart_preso_note` and its corresponding chart form a slide of a presentation. Use formatting and bullet points to emphasize important facts and make the content suitable for a concise but precise fact about the data. If possible, insert empty rows between the title and the various sentences to make the text more readable. Use a bold Roboto rgb(255,255,255) 28px for the title.
+  Populate the content of each `chart_preso_note` with a title, followed by 3 or 4 sentences of the most relevant statistical or visual facts found about the corresponding chart. Each `chart_preso_note` and its corresponding chart form a slide of a presentation. Use formatting and bullet points to emphasize important facts and make the content suitable for a concise but precise fact about the data. If possible, insert empty rows between the title and the various sentences to make the text more readable. Use a bold Roboto rgb(255,255,255) 28px for the title.
 
-  `chart_box` with `"width": "41.7%"` and `"left": "50%"` (the chart spans columns 7-11, leaving column 6 empty as the gap after the note and column 12 as a right margin)
+  `chart_box` with `"width": "41.7%"` and `"left": "50%"` (the chart spans columns 7-11, leaving column 6 empty as the gap after the note and column 12 as a right margin)
 
-  Always include the chart's `"left"` - a width without it centers the chart off the grid. Charts without a note: `chart_box` `"width": "83.3%"`, `"left": "8.3%"` (columns 2-11). When styling several notes consistently, set the FIRST note's full styling explicitly, then use `"match"` for the rest - match copies typography and width but never position offsets, so still include each note's own `"left": "8.3%"` alongside the match. After applying, remind me these render in Presentation view (side panel hidden - any column layout) or Present mode.
+  Always include the chart's `"left"` - a width without it centers the chart off the grid. Charts without a note: `chart_box` `"width": "83.3%"`, `"left": "8.3%"` (columns 2-11). When styling several notes consistently, set the FIRST note's full styling explicitly, then use `"match"` for the rest - match copies typography and width but never position offsets, so still include each note's own `"left": "8.3%"` alongside the match. After applying, remind me these render in Presentation view (side panel hidden - any column layout) or Present mode.
 * **Placement:** Position presentation notes explicitly to the **left** of the chart card.
 * **Typography & Contrast:** Force the note's base text color to pure white (`#ffffff`) so it is legible against the navy background. Use a clean sans-serif font (like the default or Roboto) with base text size `24px` (the app's default note size).
 * **Structure:** Left-align the note text. The note's width and its gap to the chart come entirely from the grid rule above (33.3% note, empty column 6 as the gap) - never also set pixel widths or pixel gaps.
@@ -63,9 +64,9 @@ Determine the series color palette by evaluating the user's prompt against the f
 * **Bar Enclosures:** Replace harsh, dark default borders on bar charts with a faint, professional frame color (`#4a4a4a`) via `chart_bars` `"border_color"`/`"border_width"`. (Treemap borders have no styling op - leave treemaps on their theme borders and say so rather than inventing parameters.)
 
 ### 4. Audience-Facing Data Context
-* **In-plot annotations** (`chart_note`) pin text at **data coordinates** - `"x"`, `"y"`, and `"text"` are always required (x/y take numbers, dates, or category names), and they work only on scatter, density, bar, histogram, box, violin, and time-series charts. Use them to point an arrow at structural behavior, e.g. "width represents data density" on a violin - `11px`. **Omit `"color"` entirely**: an uncolored note (text and arrow) follows the app's auto-contrast ink and stays visible on any deck background. Only set a color when calling out THE story datapoint with a deliberate accent - then pick it for the surface (light on the dark deck, `#2c3e50` on white panels). Longer callouts: add `"width"` (px, 40..800) so the note wraps into a tidy box instead of one long line.
+* **In-plot annotations** (`chart_note`) pin text at **data coordinates** - `"x"`, `"y"`, and `"text"` are always required (x/y take numbers, dates, or category names), and they work only on scatter, density, bar, histogram, box, violin, and time-series charts. Use them to point an arrow at structural behavior, e.g. "width represents data density" on a violin - `11px`. **Omit `"color"` entirely**: an uncolored note (text and arrow) follows the app's auto-contrast ink and stays visible on any deck background. Only set a color when calling out THE story datapoint with a deliberate accent - then pick it for the surface (light on the dark deck, `#2c3e50` on white panels). Longer callouts: add `"width"` (px, 40..800) so the note wraps into a tidy box instead of one long line. Always ensure that the annotation size and color will be readable, based on the chart background color.
 * **Coordinate-free captions**: for chart types with generated axes (scatter matrices, parallel coordinates) or any general explanation that has no anchor point, use `chart_subtitle` instead - a small line under the chart's title. Never emit a `chart_note` without x/y.
-* **The full annotation kit** for polished decks: `chart_shade` marks an era or target band (soft color, low opacity, small label), `chart_marker` draws a labeled threshold or event line, `chart_note` pins the callout. One or two per chart - each chart should answer "so what?" in-frame.
+* **The full annotation kit** for polished decks: `chart_shade` marks an era or target band (soft color, low opacity, small label), `chart_marker` draws a labeled threshold or event line, `chart_note` pins the callout. Unless instructed otherwise by the user, insert 2 or more annotations per chart - each chart should answer "so what?" in-frame, and any other relevant information such as datapoint levels, aggregation etc. Use your data story teller expertise to pick what is worth annotating. 
 
 ### 5. When No Op Fits
 If a request has no matching op in the provided context, say so in one sentence instead of guessing parameters - a rejected spec costs a full round trip.
