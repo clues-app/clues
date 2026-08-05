@@ -8,6 +8,8 @@ The entire application is **one `Clues.html` file that runs in your browser**. N
 
 > Built for people who have data and questions but don't want to code - scientists, analysts, lab managers, students. Drop a file in, and Clues profiles it, flags oddities, and suggests charts you can build with one click.
 
+See Into videos on YouTube: [Clues - Presentation using LLM](https://www.youtube.com/watch?v=O1_2HQYnBok)
+
 ## Why Clues, when a chatbot can also draw a chart?
 
 Because you can't cite a chat. A chatbot's chart is a one-off - ask again tomorrow and the bins, colors, and layout change, and the method lives in a transcript nobody can review. Clues works the other way around: **the AI proposes, you review, and Clues draws deterministically from your data, every time.**
