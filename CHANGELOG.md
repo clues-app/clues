@@ -2,6 +2,23 @@
 
 Short notes on what's new. The full manual is the [User Guide](USER_GUIDE.md).
 
+## 2026-09-30
+
+- **Project-management charts.** Four new types plus burnup/burndown, all native Plotly (no new dependency), each with AI encodings in the chart registry:
+  - **Gantt (Over Time)** - tasks as bars from start to end (or a number of days), zero-length tasks as milestone diamonds, color by status/phase/owner, optional progress shading, a dashed Today line, start-date or data order. **As of** turns a history table (one row per task per snapshot) into the plan as of its latest snapshot. Suggested automatically on the Overview when the data looks like a plan. The Over Time tab now opens for a date plus a category, since plans often carry no numbers.
+  - **Radar / spider web (Comparisons)** - one shape per group across 3+ measures picked with a compact **Spokes** checklist; mean or median; spokes in different units are rescaled 0-100% of their range and the chart says so (Auto / 0-100% / Raw values).
+  - **Pareto (Comparisons)** - categories sorted high to low by row count or a measure's sum, cumulative % on a right axis, dashed 80% guide; the tail past 20 folds into "Other".
+  - **Risk matrix (Comparisons)** - likelihood x impact with a count per cell and green/amber/red diagonal zones; levels order themselves (numbers, and common rating words); optional risk names in the hover.
+  - **Burnup / burndown (time series "Values" menu)** - sum or count per date, running total with a dashed scope line (undated rows count toward scope), or remaining; optional **Finish by** date for an ideal line.
+- **Gantt dependencies and critical path.** A **Depends on** column (predecessor names, or row IDs; MS Project codes like `5FS+2d` read as finish-to-start) draws arrows from each predecessor's end to its successor's start and outlines the critical path in red - the tasks with no slack, computed on the plan's own dates with a backward pass from the finish (nothing is rescheduled). Hover shows each task's slack; a successor that starts before its predecessor ends is a dashed red arrow with negative slack; the caption counts unmatched names and names any dependency loop. Toolbar toggles hide the arrows or the critical path.
+- **Cumulative flow (Over Time).** Items (or a measure's sum) per status per snapshot date, stacked finished-at-the-bottom to backlog-on-top, from a history table with one row per item per snapshot. Suggested on the Overview when the data looks like one.
+- **Burndown from snapshots.** "Sum per date" now takes a **Finish by** date too (ideal line from the first value to zero), and every per-date mode starts its axis at zero.
+- **BI-style tuning for the project charts.** A new **Gantt style / Radar style / Burnup / burndown style** section in each chart's ⋮ menu: critical-path color and thickness, arrow color/thickness/arrowhead, bar height and bar labels, milestone shape/size/color, finished-part color, row shading, and a date line at today, the As-of date, or a chosen status date (color, style, thickness); radar spider-web grid (now the default), manual scale and rings, fill opacity, line thickness, markers, value labels, and a target ring; burn line shape, end label, and scope/ideal line styles. One table (`PM_STYLE_PARAMS`) drives the controls and a new AI styling op, `chart_pm`, validated knob by knob.
+- **Gantt swimlanes, time axis, weekends, baseline.** Group rows by a column with lane headers and summary bars; days/weeks/week-number/month/quarter axes; weekend shading; baseline bars from planned start/end columns (auto-picked by name) with the finish variance in the hover.
+- **Projected finish** on burnup/burndown: a toolbar toggle drawing a dashed straight line at the last N periods' pace to the scope or zero, captioned with the landing date and its distance from Finish by.
+- **Annotate Chart** on the Gantt, the cumulative flow, and the Pareto.
+- **Samples.** `project-plan-sample.csv` gained a Depends on column (and dates that give it a clean critical path plus one deliberate conflict); new `project-history-sample.csv` is the same project as nine weekly snapshots, with scope added mid-project. The plan sample also carries Baseline start/end columns (the slipped tasks' original dates).
+
 ## 2026-07-24
 
 - **PowerPoint export: the deck background moved to the slide master.** Each slide used to paint its own background - and a gradient deck was silently flattened to its average color. The background now lives once on the slide master (solid colors as a native fill, gradients rendered to a background image honoring the deck angle), so editing the exported .pptx means changing ONE master in PowerPoint's View -> Slide Master, and gradients finally survive the trip.
