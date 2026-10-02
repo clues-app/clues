@@ -2,6 +2,10 @@
 
 Short notes on what's new. The full manual is the [User Guide](USER_GUIDE.md).
 
+## 2026-10-02
+
+- **Gantt summary tasks, as in Planner and MS Project.** Pick the column that names each task's summary (parent) task - by task name or ID - under **⋮ > Gantt style > Summary tasks > Summary task column** (an auto-built Gantt picks a column called *Summary task* or *Parent* by itself). Each summary row then follows with its own tasks, gets a **bold** label and a thin **bracket bar** with end caps spanning its tasks (its own dates count only when none of its tasks is dated), and stays out of the status colors and the critical-path outline. **Click a summary bar to fold** its tasks away (the label turns from ▾ to ▸; links to the hidden tasks go with them) and click again to show them; folds are saved with the chart, so a deck can open folded. **Summary bar color** sits in the same section (default: the text color). Swimlanes are off while a summary column is set.
+
 ## 2026-10-01
 
 - **Open a deck from a link.** `https://clues.ai/#open=<address of a .clue>` (or `?open=`) fetches the deck and opens it exactly like a dropped `.clue` - password prompt, drift check, and the saved Present mode - so a team can put "open the status deck" behind one click, with no file to download or pass around. If the deck has a connected data source, it checks it right away, so the charts show the source's latest data. The session you had is kept one step back: the "Deck opened" message offers **Back to my session**. Only https addresses are accepted (plus localhost for development); the site holding the deck must allow clues.ai to read it, and a refused or unreachable link says so and brings your session back. Use the `#open=` form when the address carries an access key: browsers never send the part after `#` to clues.ai. A phone-sized screen plays the linked deck as a presentation, like the welcome screen's Open button.
