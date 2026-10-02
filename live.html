@@ -1247,6 +1247,8 @@ const PM_STYLE_PARAMS = {
   bar_labels: { f: 'ganttBarLabels', t: 'enum', vals: ['', 'progress', 'dates', 'days', 'group'], names: ['None', '% complete', 'Dates', 'Days', 'Group value'], kinds: ['gantt'], group: 'Bars', label: 'Labels on bars' },
   label_size: { f: 'ganttLabelSize', t: 'num', min: 7, max: 20, def: 10, kinds: ['gantt'], group: 'Bars', label: 'Label size (px)', show: (c) => !!c.ganttBarLabels },
   done_color: { f: 'ganttDoneColor', t: 'color', kinds: ['gantt'], group: 'Bars', label: 'Finished-part color', auto: 'series color', show: (c) => !!c.ganttProgress },
+  border_width: { f: 'ganttBorderWidth', t: 'num', min: 0, max: 6, def: 0, kinds: ['gantt'], group: 'Bars', label: 'Border thickness (px)' },
+  border_color: { f: 'ganttBorderColor', t: 'color', kinds: ['gantt'], group: 'Bars', label: 'Border color', auto: 'the bar\'s own color', show: (c) => Number(c.ganttBorderWidth) > 0 },
   row_bands: { f: 'ganttBands', t: 'bool', kinds: ['gantt'], group: 'Bars', label: 'Alternating row shading' },
   milestone_shape: { f: 'ganttMsSymbol', t: 'enum', vals: ['diamond', 'star', 'triangle-up', 'circle', 'square', 'hexagram'], names: ['Diamond', 'Star', 'Triangle', 'Circle', 'Square', 'Hexagram'], kinds: ['gantt'], group: 'Milestones', label: 'Shape' },
   milestone_size: { f: 'ganttMsSize', t: 'num', min: 6, max: 30, def: 14, kinds: ['gantt'], group: 'Milestones', label: 'Size (px)' },
@@ -1263,6 +1265,7 @@ const PM_STYLE_PARAMS = {
   today_width: { f: 'ganttTodayWidth', t: 'num', min: 0.5, max: 6, def: 1.5, kinds: ['gantt'], group: 'Date line', label: 'Thickness (px)' },
   lanes: { f: 'ganttLanes', t: 'catcol', kinds: ['gantt'], group: 'Layout', label: 'Swimlanes by', structural: true },
   folded_lanes: { f: 'ganttLanesCollapsed', t: 'list', kinds: ['gantt'], group: 'Layout', label: 'Folded swimlanes', structural: true, show: (c) => !!c.ganttLanes },
+  lane_color: { f: 'ganttLaneColor', t: 'color', kinds: ['gantt'], group: 'Layout', label: 'Swimlane bar color', auto: 'summary bar color', show: (c) => !!c.ganttLanes },
   summary: { f: 'ganttParent', t: 'catcol', kinds: ['gantt'], group: 'Summary tasks', label: 'Summary task column', structural: true },
   summary_color: { f: 'ganttSumColor', t: 'color', kinds: ['gantt'], group: 'Summary tasks', label: 'Summary bar color', auto: 'text color', show: (c) => !!c.ganttParent },
   folded: { f: 'ganttCollapsed', t: 'list', kinds: ['gantt'], group: 'Summary tasks', label: 'Folded summary tasks', structural: true, show: (c) => !!c.ganttParent },
@@ -1314,8 +1317,8 @@ const pmStyleValue = (s, v, cols) => {
 };
 const pmStyleOpDesc = () => 'Style knobs for the PROJECT charts - Gantt, radar, and burnup/burndown (a time series with a per-date Values mode). Pass only what you change; "" returns a knob to automatic. Knobs: ' +
 Object.entries(PM_STYLE_PARAMS).map(([k, s]) => `"${k}" (${s.kinds.join('/')}: ${s.t === 'num' ? `number${s.min != null ? ` ${s.min}..${s.max}` : ''}` : s.t === 'enum' ? s.vals.filter(Boolean).join('|') : s.t === 'bool' ? 'true|false' : s.t === 'color' ? 'hex' : s.t === 'date' ? 'YYYY-MM-DD' : s.t === 'catcol' ? 'categorical column' : s.t === 'list' ? 'list of task names' : 'date column'})`).join(', ') +
-'. critical_* style the critical-path outline and links; today_at "asof" draws the date line at the As-of snapshot date; lanes groups rows into swimlanes, each headed by a bold row with a bracket bar across its span (a click folds the lane); folded_lanes lists the lane values whose rows are hidden ([] or "" shows all); ' +
-'summary names the column holding each task\'s summary (parent) task, by task name or ID (e.g. "Summary task" or "Parent"): each summary row then spans its tasks with a bold label and a thin bracket bar, its tasks listed under it, kept out of the status colors and the critical outline; with lanes too, the tree sits inside each swimlane (e.g. lanes = Project for several projects); summary_color colors the summary and lane brackets (default: the text color); ' +
+'. border_width / border_color outline every task bar and milestone (the color defaults to the bar\'s own group color; critical tasks keep the critical-path outline); critical_* style the critical-path outline and links; today_at "asof" draws the date line at the As-of snapshot date; lanes groups rows into swimlanes, each headed by a bold row with a bracket bar across its span (a click folds the lane); folded_lanes lists the lane values whose rows are hidden ([] or "" shows all); ' +
+'summary names the column holding each task\'s summary (parent) task, by task name or ID (e.g. "Summary task" or "Parent"): each summary row then spans its tasks with a bold label and a thin bracket bar, its tasks listed under it, kept out of the status colors and the critical outline; with lanes too, the tree sits inside each swimlane (e.g. lanes = Project for several projects); summary_color colors the summary brackets (and the lane brackets unless lane_color is set); lane_color colors the swimlane brackets, e.g. one color for projects and another for their summary tasks (default: the text color); ' +
 'folded lists the summary task names whose tasks are hidden (as a viewer clicking a summary bar does; [] or "" shows all) - names must be values of the Task column; baseline_start/end draw a thin planned-dates bar under each task; project draws a straight-line projected finish from the last project_window periods (a pace, not a forecast model).';
 
 // Styling ops - APPEARANCE ONLY, applied automatically on import (and reversible per response).
@@ -2266,7 +2269,7 @@ const withTraceDisplayOptions = (traces, showLabels = true, showLegend = true) =
   });
 };
 
-const PlotlyChart = ({ chartId, data, layout, config, frames, onRelayout, onSelected, onDeselect, onRestyle, onLegendClick, onClickAnnotation, onPointClick, onTitleDrag, spin, blink, replay, onReplayToggle, animLoop, eager }) => {
+const PlotlyChart = ({ chartId, data, layout, config, frames, onRelayout, onSelected, onDeselect, onRestyle, onLegendClick, onClickAnnotation, onPointClick, pointerOn, onTickClick, tickClickable, onTitleDrag, spin, blink, replay, onReplayToggle, animLoop, eager }) => {
   const divRef = useRef(null);
   // Replay scrubber: a range input overlaid at the plot's bottom (the plot parent
   // is position:relative). The engine feeds it via refs - no React re-renders.
@@ -2434,6 +2437,43 @@ const PlotlyChart = ({ chartId, data, layout, config, frames, onRelayout, onSele
       if (onLegendClick) node.removeListener('plotly_legendclick', legendClickHandler);
     };
   }, [armed, plotEpoch, onRelayout, onSelected, onDeselect, onRestyle, onLegendClick, onClickAnnotation, onPointClick]);
+
+  // Clickable points and y-axis labels (the Gantt's folding): a pointing hand over the points
+  // pointerOn accepts and over the labels tickClickable accepts; a click on such a label calls
+  // onTickClick with its category. Plotly sends no event for axis labels and lays its axis drag
+  // strips over them, so the label under the mouse is found by its box.
+  useEffect(() => {
+    const node = divRef.current;
+    if (!armed || !node || typeof node.on !== 'function' || !pointerOn && !onTickClick) return;
+    const plotDrag = () => node.querySelector('.nsewdrag');
+    const hover = (ev) => {const d = plotDrag();if (d && pointerOn && (ev && ev.points || []).some(pointerOn)) d.style.cursor = 'pointer';};
+    const unhover = () => {const d = plotDrag();if (d) d.style.cursor = '';};
+    const labelAt = (x, y) => {
+      const ya = node._fullLayout && node._fullLayout.yaxis;
+      if (!onTickClick || !ya || !ya._categories) return null;
+      for (const el of node.querySelectorAll('.ytick text')) {
+        const r = el.getBoundingClientRect();
+        if (x < r.left - 3 || x > r.right + 3 || y < r.top - 3 || y > r.bottom + 3) continue;
+        const cat = el.__data__ ? ya._categories[Math.round(el.__data__.x)] : undefined;
+        if (cat !== undefined && (!tickClickable || tickClickable(cat))) return cat;
+      }
+      return null;
+    };
+    let pointed = null;
+    const move = (ev) => {
+      const cat = labelAt(ev.clientX, ev.clientY);
+      if (cat != null) {if (pointed !== ev.target) {if (pointed) pointed.style.cursor = '';pointed = ev.target;}pointed.style.cursor = 'pointer';} else
+      if (pointed) {pointed.style.cursor = '';pointed = null;}
+    };
+    const click = (ev) => {const cat = labelAt(ev.clientX, ev.clientY);if (cat != null) {ev.stopPropagation();onTickClick(cat);}};
+    if (pointerOn) {node.on('plotly_hover', hover);node.on('plotly_unhover', unhover);}
+    if (onTickClick) {node.addEventListener('mousemove', move);node.addEventListener('click', click, true);}
+    return () => {
+      if (pointed) pointed.style.cursor = '';
+      if (pointerOn && node.removeListener) {node.removeListener('plotly_hover', hover);node.removeListener('plotly_unhover', unhover);}
+      if (onTickClick) {node.removeEventListener('mousemove', move);node.removeEventListener('click', click, true);}
+    };
+  }, [armed, plotEpoch, pointerOn, onTickClick, tickClickable]);
 
   // Drag the chart TITLE like an annotation: pointer-drag on the title text
   // repositions it in paper coordinates (saved on the chart); a plain click
@@ -4129,7 +4169,7 @@ const EMBEDDED_AUTOLOAD = false;
 // alias shell is not functional drift. Single-line contract like the EMBEDDED_*
 // lines above - it is normalized out of computeShellHash, so stamping it never
 // changes this shell's own hash.
-const SHELL_HASH_ALIASES = ['8f5ed998'];
+const SHELL_HASH_ALIASES = ['d314813d'];
 // Set to a unique id by the Portable HTML export so each portable file keeps its
 // own autosave, isolated from the canonical app and from other portables (file://
 // pages otherwise share a single localStorage and would cross-contaminate).
@@ -5212,6 +5252,9 @@ const App = () => {
     toastTimerRef.current = setTimeout(() => setToast(null), action ? 12000 : 7000);
   }, []);
   const [loading, setLoading] = useState(false);
+  // A deck link (#open=) being fetched: the host it comes from, shown on the start box instead of
+  // "Get your Clues!" until the deck opens (or the link fails and the usual box comes back).
+  const [linkPull, setLinkPull] = useState(() => {const l = linkedDeck();return l && l.ok ? l.host : '';});
   const [error, setError] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -6194,6 +6237,7 @@ const App = () => {
         if (!parsed || !parsed.clues_encrypted && !parsed.rawCsvData && !parsed.data) throw new Error('the file at the link is not a Clues deck');
       } catch (err) {
         setLoading(false);
+        setLinkPull('');
         showToast('Could not open the deck from the link: ' + (err && err.message || err) + '.', 'error');
         // The session that was here comes back, as on any normal start.
         try {
@@ -6214,6 +6258,9 @@ const App = () => {
       if (gateSized) {gateBootRef.current = true;setGateBoot(true);}
       connAutoCheckedRef.current = false;
       loadWorkspace(new File([text], 'linked-deck.clue', { type: 'application/json' }));
+      // The deck replaces the start box; if it does not open (a password asked, a damaged file), the
+      // usual box comes back after a moment.
+      setTimeout(() => setLinkPull(''), 4000);
       showToast('Deck opened from ' + link.host + '.', 'success', backup ? { label: 'Back to my session', onClick: backToMySession } : null);
     })();
   }, []);
@@ -6237,17 +6284,22 @@ const App = () => {
 
   // Click a chart note (Excel-comment style): a small popover at the cursor
   // edits its text, font size, box width, color, and arrow.
-  // Gantt: a click on a summary task's or a swimlane's bracket folds its rows away, or shows them again.
+  // Gantt: a click on a summary task's or a swimlane's bracket - or on its name on the axis - folds its
+  // rows away, or shows them again. Lane header rows are keyed by an invisible separator + the lane value.
+  const ganttFoldable = (q) => Array.isArray(q && q.customdata) && (q.customdata[6] === 'summary' || q.customdata[6] === 'lane');
+  const flipGanttFold = (chart, field, name) => setTimeCharts((cs) => cs.map((c) => {
+    if (c.id !== chart.id) return c;
+    const cur = (c[field] || []).map(String);
+    return { ...c, [field]: cur.includes(name) ? cur.filter((n) => n !== name) : [...cur, name] };
+  }));
   const toggleGanttFold = (chart, ev) => {
-    const pt = (ev && ev.points || []).find((q) => Array.isArray(q.customdata) && (q.customdata[6] === 'summary' || q.customdata[6] === 'lane'));
-    if (!pt) return;
-    const name = String(pt.customdata[5]);
-    const field = pt.customdata[6] === 'lane' ? 'ganttLanesCollapsed' : 'ganttCollapsed';
-    setTimeCharts((cs) => cs.map((c) => {
-      if (c.id !== chart.id) return c;
-      const cur = (c[field] || []).map(String);
-      return { ...c, [field]: cur.includes(name) ? cur.filter((n) => n !== name) : [...cur, name] };
-    }));
+    const pt = (ev && ev.points || []).find(ganttFoldable);
+    if (pt) flipGanttFold(chart, pt.customdata[6] === 'lane' ? 'ganttLanesCollapsed' : 'ganttCollapsed', String(pt.customdata[5]));
+  };
+  const toggleGanttFoldLabel = (chart, cat) => {
+    const key = String(cat);
+    if (key.startsWith('\u2063')) flipGanttFold(chart, 'ganttLanesCollapsed', key.slice(1));else
+    flipGanttFold(chart, 'ganttCollapsed', key);
   };
   const handleNoteClick = (family, chart, ev) => {
     const nm = ev && ev.annotation && String(ev.annotation.name || '');
@@ -7622,7 +7674,7 @@ How to change it: the X:, Y:, and Size: dropdowns in the chart header; recolor w
     if (c.type === 'radar') {const sp = (c.dimensions && c.dimensions.length ? c.dimensions : keys.quant).filter((k) => keys.quant.includes(k));p.push(`spokes=${sp.join('/')} stat=${c.agg === 'median' ? 'median' : 'mean'} scale=${c.radarScale || 'auto'}`);}
     if (c.type === 'pareto') p.push(`category=${c.groupBy || '?'} value=${keys.quant.includes(c.paretoValue) ? `sum of ${c.paretoValue}` : 'row count'}`);
     if (c.type === 'risk') p.push(`likelihood=${c.cat1 || '?'} impact=${c.cat2 || '?'}${c.riskLabel ? ` label=${c.riskLabel}` : ''}`);
-    if (c.type === 'gantt') p.push(`task=${c.ganttTask || '?'} start=${c.dateKey || '?'} ${c.ganttEnd ? `end=${c.ganttEnd}` : c.ganttDuration ? `duration_days=${c.ganttDuration}` : '(all milestones: no end or duration)'}${c.ganttProgress ? ` progress=${c.ganttProgress}` : ''}${c.ganttSnapshot ? ` snapshot=${c.ganttSnapshot} (latest snapshot shown)` : ''}${c.ganttToday === false ? ' today_line=off' : ''}${c.ganttSort === 'data' ? ' order=data' : ''}${c.ganttDeps ? ` depends=${c.ganttDeps} critical=${c.ganttCritical === false || c.ganttCritical === 'off' ? 'off' : 'on'} links=${c.ganttLinks === false || c.ganttLinks === 'off' ? 'off' : 'on'}` : ''}${c.ganttParent ? ` summary=${c.ganttParent}${c.ganttSumColor ? ` summary_color=${c.ganttSumColor}` : ''}${(c.ganttCollapsed || []).length ? ` folded=[${c.ganttCollapsed.slice(0, 8).join('; ')}${c.ganttCollapsed.length > 8 ? `; +${c.ganttCollapsed.length - 8} more` : ''}]` : ''}` : ''}${c.ganttLanes ? ` swimlanes=${c.ganttLanes}${(c.ganttLanesCollapsed || []).length ? ` folded_lanes=[${c.ganttLanesCollapsed.slice(0, 8).join('; ')}${c.ganttLanesCollapsed.length > 8 ? `; +${c.ganttLanesCollapsed.length - 8} more` : ''}]` : ''}` : ''}${c.ganttBaseStart ? ` baseline=${c.ganttBaseStart}${c.ganttBaseEnd ? `..${c.ganttBaseEnd}` : ''}` : ''}`);
+    if (c.type === 'gantt') p.push(`task=${c.ganttTask || '?'} start=${c.dateKey || '?'} ${c.ganttEnd ? `end=${c.ganttEnd}` : c.ganttDuration ? `duration_days=${c.ganttDuration}` : '(all milestones: no end or duration)'}${c.ganttProgress ? ` progress=${c.ganttProgress}` : ''}${c.ganttSnapshot ? ` snapshot=${c.ganttSnapshot} (latest snapshot shown)` : ''}${c.ganttToday === false ? ' today_line=off' : ''}${c.ganttSort === 'data' ? ' order=data' : ''}${c.ganttDeps ? ` depends=${c.ganttDeps} critical=${c.ganttCritical === false || c.ganttCritical === 'off' ? 'off' : 'on'} links=${c.ganttLinks === false || c.ganttLinks === 'off' ? 'off' : 'on'}` : ''}${c.ganttParent ? ` summary=${c.ganttParent}${c.ganttSumColor ? ` summary_color=${c.ganttSumColor}` : ''}${(c.ganttCollapsed || []).length ? ` folded=[${c.ganttCollapsed.slice(0, 8).join('; ')}${c.ganttCollapsed.length > 8 ? `; +${c.ganttCollapsed.length - 8} more` : ''}]` : ''}` : ''}${c.ganttLanes ? ` swimlanes=${c.ganttLanes}${c.ganttLaneColor ? ` lane_color=${c.ganttLaneColor}` : ''}${(c.ganttLanesCollapsed || []).length ? ` folded_lanes=[${c.ganttLanesCollapsed.slice(0, 8).join('; ')}${c.ganttLanesCollapsed.length > 8 ? `; +${c.ganttLanesCollapsed.length - 8} more` : ''}]` : ''}` : ''}${c.ganttBaseStart ? ` baseline=${c.ganttBaseStart}${c.ganttBaseEnd ? `..${c.ganttBaseEnd}` : ''}` : ''}`);
     if (c.type === 'cfd') p.push(`status=${c.groupBy || '?'} value=${keys.quant.includes(c.cfdValue) ? `sum of ${c.cfdValue}` : 'row count'} (stacked per date)`);
     if (c.type === 'timeseries' && c.tsAgg) p.push(`per_date=${c.tsAgg}${c.tsFinishBy ? ` finish_by=${c.tsFinishBy} (ideal line)` : ''}${c.tsProject ? ` projected_finish=on (last ${c.tsProjectWindow || 4} periods)` : ''}`);
     if (c.type === 'bar') {
@@ -13775,6 +13827,7 @@ with the analysis defaults, this block wins.
     // the thin baseline bar sits just below it.
     const mainW = baseSKey ? Math.min(bw, 0.5) : bw;
     const critW = Math.max(0.5, numOr(chart.ganttCritWidth, 2.5));
+    const borderW = Math.max(0, numOr(chart.ganttBorderWidth, 0)); // task borders (Gantt style > Bars), 0 = none
     const labelMode = chart.ganttBarLabels || '';
     const labelSize = numOr(chart.ganttLabelSize, 10);
     const msSym = chart.ganttMsSymbol || 'diamond';
@@ -13840,6 +13893,7 @@ with the analysis defaults, this block wins.
     const bracketColor = chart.ganttSumColor || ink;
     const bracketTip = '<b>%{customdata[5]}</b><br>%{customdata[0]} to %{customdata[1]} (%{customdata[2]})%{customdata[3]}%{customdata[4]}<extra></extra>';
     const lns = lanes.filter((ln) => ln.e > ln.s);
+    const laneColor = chart.ganttLaneColor || bracketColor; // Swimlane bar color, default the summary bar color
     if (lns.length) {
       // customdata[5] = the lane's value and [6] = 'lane' let a click fold or unfold it.
       const laneRow = (ln) => {
@@ -13848,9 +13902,9 @@ with the analysis defaults, this block wins.
         `<br>${ln.n} task${ln.n === 1 ? '' : 's'} - click to ${lanesFolded.has(ln.name) ? 'show' : 'fold'} ${ln.n === 1 ? 'it' : 'them'}`, ln.name, 'lane'];
       };
       traces.push({ type: 'bar', orientation: 'h', y: lns.map((ln) => ln.key), x: lns.map((ln) => ln.e - ln.s), base: lns.map((ln) => ganttIso(ln.s)), width: 0.28,
-        name: 'Swimlanes', showlegend: false, marker: { color: bracketColor, line: { width: 0 } }, customdata: lns.map(laneRow), hovertemplate: bracketTip });
+        name: 'Swimlanes', showlegend: false, marker: { color: laneColor, line: { width: 0 } }, customdata: lns.map(laneRow), hovertemplate: bracketTip });
       traces.push({ type: 'scatter', mode: 'markers', y: lns.flatMap((ln) => [ln.key, ln.key]), x: lns.flatMap((ln) => [ganttIso(ln.s), ganttIso(ln.e)]),
-        name: 'Swimlanes', showlegend: false, marker: { symbol: 'line-ns', size: 24, color: bracketColor, line: { width: 3, color: bracketColor } },
+        name: 'Swimlanes', showlegend: false, marker: { symbol: 'line-ns', size: 24, color: laneColor, line: { width: 3, color: laneColor } },
         customdata: lns.flatMap((ln) => {const c = laneRow(ln);return [c, c];}), hovertemplate: bracketTip });
     }
     getCategoryValues(src, groupBy).forEach((cat) => {
@@ -13880,8 +13934,8 @@ with the analysis defaults, this block wins.
         traces.push({
           type: 'bar', orientation: 'h', y: bars.map((it) => it.name), x: bars.map((it) => it.dur), base: bars.map((it) => it.sStr),
           width: mainW, name: st.name, legendgroup: st.name, showlegend: showLeg && !pKey,
-          // Critical tasks: an outline in the critical-path color (the fill keeps its group color).
-          marker: { color: pKey ? colorWithOpacity(st.color, 0.38) : st.colorAlpha, line: { width: bars.map((it) => isCrit(it.name) ? critW : 0), color: bars.map((it) => isCrit(it.name) ? critColor : 'rgba(0,0,0,0)') } },
+          // Outlines (borders, the critical path) are a separate bar on top - see below.
+          marker: { color: pKey ? colorWithOpacity(st.color, 0.38) : st.colorAlpha, line: { width: 0 } },
           ...(labelMode ? { text: bars.map(labelOf), ...textOpts } : {}),
           customdata: bars.map(info),
           hovertemplate: `<b>%{y}</b><br>%{customdata[0]} to %{customdata[1]} (%{customdata[2]})%{customdata[3]}%{customdata[4]}${grpLine}<extra></extra>`
@@ -13892,13 +13946,22 @@ with the analysis defaults, this block wins.
           width: mainW, name: `${st.name} done`, legendgroup: st.name, showlegend: false, hoverinfo: 'skip',
           marker: { color: chart.ganttDoneColor || st.colorAlpha, line: { width: 0 } }
         });
+        // Outlines on top of the bar AND its progress shading (drawn on the bar itself, the shading
+        // covered them): an unfilled bar of the same size. Critical tasks: the critical-path outline;
+        // the others: the border (Gantt style > Bars), in the bar's own color unless one is set.
+        const edgeW = (it) => isCrit(it.name) ? critW : borderW;
+        if (bars.some((it) => edgeW(it) > 0)) traces.push({
+          type: 'bar', orientation: 'h', y: bars.map((it) => it.name), x: bars.map((it) => it.dur), base: bars.map((it) => it.sStr),
+          width: mainW, name: `${st.name} outline`, legendgroup: st.name, showlegend: false, hoverinfo: 'skip',
+          marker: { color: 'rgba(0,0,0,0)', line: { width: bars.map(edgeW), color: bars.map((it) => isCrit(it.name) ? critColor : chart.ganttBorderColor || st.color) } }
+        });
       }
       if (stones.length) {
         const stoneText = labelMode === 'dates' || labelMode === 'group';
         traces.push({
           type: 'scatter', mode: stoneText ? 'markers+text' : 'markers', y: stones.map((it) => it.name), x: stones.map((it) => it.sStr),
           name: st.name, legendgroup: st.name, showlegend: showLeg && !bars.length,
-          marker: { symbol: msSym, size: msSize, color: chart.ganttMsColor || st.colorAlpha, line: { width: stones.map((it) => isCrit(it.name) ? critW : 1), color: stones.map((it) => isCrit(it.name) ? critColor : ink) } },
+          marker: { symbol: msSym, size: msSize, color: chart.ganttMsColor || st.colorAlpha, line: { width: stones.map((it) => isCrit(it.name) ? critW : borderW > 0 ? borderW : 1), color: stones.map((it) => isCrit(it.name) ? critColor : borderW > 0 ? chart.ganttBorderColor || st.color : ink) } },
           ...(stoneText ? { text: stones.map(labelOf), textposition: 'middle right', textfont: { size: labelSize, color: ink, family: chartConfig.fontFamily }, cliponaxis: false } : {}),
           customdata: stones.map(info),
           hovertemplate: `<b>%{y}</b><br>Milestone: %{customdata[0]}%{customdata[4]}${grpLine}<extra></extra>`
@@ -13995,7 +14058,7 @@ with the analysis defaults, this block wins.
     }
     const lo = Math.min(...items.map((it) => it.sMs), ...[...baseOf.values()].map((b) => b.bsMs)),hi = Math.max(...items.map((it) => it.eMs), ...[...baseOf.values()].map((b) => b.beMs));
     const critCount = critOn ? [...nodes.keys()].filter(isCrit).length : 0;
-    traces[0].meta = { cluesGantt: { order, labels, lanes: lanes.map((l) => ({ name: l.name, first: l.first, last: l.last })), laned: !!laneKey, tree: !!parKey, linkPaths, baseline: baseOf.size > 0, lo, hi, skipped, asOf, snapKey, tasks: items.length ? seen.size : 0, deps: !!depKey, links: links.length, cpmOn, critOn, critCount, conflicts, unmatched, cycle } };
+    traces[0].meta = { cluesGantt: { order, labels, lanes: lanes.map((l) => ({ name: l.name, first: l.first, last: l.last })), laned: !!laneKey, tree: !!parKey, linkPaths, foldable: [...lanes.map((l) => l.key), ...items.filter((it) => it.sum).map((it) => it.name)], baseline: baseOf.size > 0, lo, hi, skipped, asOf, snapKey, tasks: items.length ? seen.size : 0, deps: !!depKey, links: links.length, cpmOn, critOn, critCount, conflicts, unmatched, cycle } };
     return traces;
   };
 
@@ -16837,12 +16900,12 @@ with the analysis defaults, this block wins.
     !data && /*#__PURE__*/
     React.createElement("div", { className: "flex flex-col items-center justify-center h-full" }, /*#__PURE__*/
     React.createElement("div", { onDragOver: (e) => {e.preventDefault();setIsDragging(true);}, onDragLeave: (e) => {e.preventDefault();setIsDragging(false);}, onDrop: (e) => {e.preventDefault();setIsDragging(false);const file = e.dataTransfer.files[0];if (file) {if (file.name.endsWith('.clue')) loadWorkspace(file);else parseFile(file);}}, className: `p-12 rounded-xl shadow-md max-w-2xl w-full text-center border-2 border-dashed transition-all duration-200 ${isDragging ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 scale-[1.02]' : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800'}` }, /*#__PURE__*/
-    React.createElement("div", { className: "w-20 h-20 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mx-auto mb-5 pointer-events-none" }, /*#__PURE__*/
+    React.createElement("div", { className: `w-20 h-20 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center mx-auto mb-5 pointer-events-none${linkPull ? ' animate-pulse' : ''}` }, /*#__PURE__*/
     React.createElement("svg", { className: "w-10 h-10", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", xmlns: "http://www.w3.org/2000/svg" }, /*#__PURE__*/React.createElement("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2", d: "M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" }))
     ), /*#__PURE__*/
-    React.createElement("h2", { className: "text-3xl font-bold text-slate-800 dark:text-slate-100 mb-3" }, "Get your Clues!"), /*#__PURE__*/
-    React.createElement("p", { className: "text-slate-500 dark:text-slate-400 mb-8 text-base" }, "Drop a CSV or Excel file and let your data talk. Or drop a `.clue` file to pick up where you left off."), /*#__PURE__*/
-    React.createElement("div", { className: "flex flex-col sm:flex-row gap-4 w-full justify-center px-4" }, /*#__PURE__*/
+    React.createElement("h2", { className: "text-3xl font-bold text-slate-800 dark:text-slate-100 mb-3" }, linkPull ? 'Pulling data from your feed...' : 'Get your Clues!'), /*#__PURE__*/
+    React.createElement("p", { className: "text-slate-500 dark:text-slate-400 mb-8 text-base" }, linkPull ? /*#__PURE__*/React.createElement(React.Fragment, null, "Opening the deck from ", /*#__PURE__*/React.createElement("b", null, linkPull), " with its latest data. This takes a few seconds.") : 'Drop a CSV or Excel file and let your data talk. Or drop a `.clue` file to pick up where you left off.'), /*#__PURE__*/
+    React.createElement("div", { className: `flex flex-col sm:flex-row gap-4 w-full justify-center px-4${linkPull ? ' hidden' : ''}` }, /*#__PURE__*/
     React.createElement("label", { className: "cursor-pointer inline-flex items-center px-8 py-4 rounded-md text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 justify-center shadow-sm text-lg font-medium flex-1 basis-0 transition-colors" }, /*#__PURE__*/
     React.createElement("span", null, loading ? 'Processing...' : 'Upload CSV, Excel or Clue'), /*#__PURE__*/
     React.createElement("input", { type: "file", accept: ".csv,.tsv,.xlsx,.xls,.clue,.json", className: "hidden", onChange: (e) => {const f = e.target.files[0];if (f && (f.name.endsWith('.clue') || f.name.endsWith('.json'))) loadWorkspace(f);else parseFile(f);e.target.value = null;}, disabled: loading })
@@ -19087,7 +19150,7 @@ with the analysis defaults, this block wins.
           showTitle: getChartOption(chart, 'showTitle', true), onToggleTitle: (v) => setTimeCharts((charts) => charts.map((c) => c.id === chart.id ? { ...c, showTitle: v } : c)),
           onReorderStart: () => setDragChart({ family: 'time', id: chart.id }), onReorderOver: () => {if (dragChart && dragChart.family === 'time' && dragChart.id !== chart.id) setDragOverId(chart.id);}, onReorderDrop: () => {if (dragChart && dragChart.family === 'time') setTimeCharts((cs) => reorderCharts(cs, dragChart.id, chart.id));endChartDrag();}, onReorderEnd: endChartDrag, reorderActive: !!dragChart && dragChart.family === 'time' && dragChart.id !== chart.id && dragOverId === chart.id }, /*#__PURE__*/
 
-        React.createElement(PlotlyChart, { onTitleDrag: (xy) => setTimeCharts((cs) => cs.map((c) => c.id === chart.id ? { ...c, titleX: xy.x, titleY: xy.y } : c)), onClickAnnotation: (ev) => handleNoteClick('time', chart, ev), onPointClick: timeChartType === 'gantt' && (chart.ganttParent || chart.ganttLanes) ? (ev) => toggleGanttFold(chart, ev) : undefined, chartId: `time-${chart.id}`, data: traces, layout: applyChartCanvas(dynLayout, chart), config: getPlotlyConfig(chart), frames: raceData ? raceData.frames : undefined, animLoop: raceData && raceData.loop ? { ...raceData.loop, loops: chart.raceLoops || '1' } : null, eager: sheetCapture, onRestyle: (node) => handleLegendVisibility(node, chart, setTimeCharts), onRelayout: (eventData, gd) => handleLegendRelayout(eventData, chart, setTimeCharts, gd), onSelected: (eventData) => handleChartSelection('Time series', eventData, { yLabel: getQuantAlias(chart.quantKey) }), onDeselect: clearBrushHighlight })
+        React.createElement(PlotlyChart, { onTitleDrag: (xy) => setTimeCharts((cs) => cs.map((c) => c.id === chart.id ? { ...c, titleX: xy.x, titleY: xy.y } : c)), onClickAnnotation: (ev) => handleNoteClick('time', chart, ev), onPointClick: timeChartType === 'gantt' && (chart.ganttParent || chart.ganttLanes) ? (ev) => toggleGanttFold(chart, ev) : undefined, pointerOn: timeChartType === 'gantt' && (chart.ganttParent || chart.ganttLanes) ? ganttFoldable : undefined, onTickClick: timeChartType === 'gantt' && (chart.ganttParent || chart.ganttLanes) ? (cat) => toggleGanttFoldLabel(chart, cat) : undefined, tickClickable: timeChartType === 'gantt' && (chart.ganttParent || chart.ganttLanes) ? (cat) => (((traces || []).find((tr) => tr && tr.meta && tr.meta.cluesGantt) || {}).meta || { cluesGantt: {} }).cluesGantt.foldable?.includes(cat) : undefined, chartId: `time-${chart.id}`, data: traces, layout: applyChartCanvas(dynLayout, chart), config: getPlotlyConfig(chart), frames: raceData ? raceData.frames : undefined, animLoop: raceData && raceData.loop ? { ...raceData.loop, loops: chart.raceLoops || '1' } : null, eager: sheetCapture, onRestyle: (node) => handleLegendVisibility(node, chart, setTimeCharts), onRelayout: (eventData, gd) => handleLegendRelayout(eventData, chart, setTimeCharts, gd), onSelected: (eventData) => handleChartSelection('Time series', eventData, { yLabel: getQuantAlias(chart.quantKey) }), onDeselect: clearBrushHighlight })
         ));
 
     })
