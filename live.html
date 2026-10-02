@@ -4129,7 +4129,7 @@ const EMBEDDED_AUTOLOAD = false;
 // alias shell is not functional drift. Single-line contract like the EMBEDDED_*
 // lines above - it is normalized out of computeShellHash, so stamping it never
 // changes this shell's own hash.
-const SHELL_HASH_ALIASES = ['2e9221fe'];
+const SHELL_HASH_ALIASES = ['8f5ed998'];
 // Set to a unique id by the Portable HTML export so each portable file keeps its
 // own autosave, isolated from the canonical app and from other portables (file://
 // pages otherwise share a single localStorage and would cross-contaminate).
@@ -13937,31 +13937,55 @@ with the analysis defaults, this block wins.
         marker: { symbol: msSym + '-open', size: Math.max(6, msSize * 0.8), color: bcol }, customdata: blStones.map((b) => [ganttIso(b.bsMs)]), hovertemplate: '<b>%{y}</b><br>Baseline: %{customdata[0]}<extra></extra>' });
     }
 
-    // Dependency connectors: predecessor end -> a short stub -> down/up to the successor's
-    // row -> into its start, with an arrowhead. Critical links in the critical-path color,
+    // Dependency connectors, drawn like Planner's: from the predecessor's end a short stub, then
+    // down (or up) to the successor's row and into its start, with rounded corners and an
+    // arrowhead. When the successor starts as (or before) the predecessor ends there is no room
+    // for that elbow, so the line loops: out to the right, down to the gap above the successor's
+    // row, back to the left, down and into the start. Each style is ONE path shape
+    // (meta.cluesGantt.linkPaths, added by the layout): rows sit at category positions 0, 1, ...
+    // and only a shape can run between two rows. Critical links in the critical-path color,
     // conflicting ones (the successor starts before its predecessor ends) dashed.
-    let conflicts = 0;
+    let conflicts = 0;const linkPaths = [];
     if (links.length && chart.ganttLinks !== false && chart.ganttLinks !== 'off') {
-      const grp = { norm: { x: [], y: [], ax: [], ay: [], sym: [] }, crit: { x: [], y: [], ax: [], ay: [], sym: [] }, bad: { x: [], y: [], ax: [], ay: [], sym: [] } };
+      const rowOf = new Map(order.map((k, j) => [k, j]));
+      const spanMs = Math.max(GANTT_DAY, Math.max(...items.map((it) => it.eMs)) - Math.min(...items.map((it) => it.sMs)));
+      const rx = spanMs * 0.01,ry = 0.22,stub = spanMs * 0.022; // corner radius and loop stub: about 6 and 12 px on a usual plot
+      // Path coordinates: dates as 'YYYY-MM-DD_HH:MM:SS' (Plotly's path format for date axes), rows as numbers.
+      const at = (x, y) => `${ganttIsoT(x).replace(' ', '_')},${Math.round(y * 1000) / 1000}`;
+      // An axis-aligned polyline with each corner rounded (a quadratic curve through the corner).
+      const rounded = (pts) => {
+        const toward = ([px, py], [nx, ny]) => px !== nx ?
+        [px + Math.sign(nx - px) * Math.min(rx, Math.abs(nx - px) / 2), py] :
+        [px, py + Math.sign(ny - py) * Math.min(ry, Math.abs(ny - py) / 2)];
+        let d = 'M' + at(...pts[0]);
+        for (let j = 1; j < pts.length - 1; j++) d += ' L' + at(...toward(pts[j], pts[j - 1])) + ' Q' + at(...pts[j]) + ' ' + at(...toward(pts[j], pts[j + 1]));
+        return d + ' L' + at(...pts[pts.length - 1]);
+      };
+      const grp = { norm: { d: [], ax: [], ay: [] }, crit: { d: [], ax: [], ay: [] }, bad: { d: [], ax: [], ay: [] } };
       links.forEach(({ from, to }) => {
         const a = nodes.get(from),b = nodes.get(to);
         const pE = a.E,sS = b.S;
         const bad = sS < pE - TOL;
         if (bad) conflicts++;
+        const yA = rowOf.get(from),yB = rowOf.get(to);
+        if (yA === undefined || yB === undefined || yA === yB) return;
         const crit = !bad && critOn && isCrit(from) && isCrit(to) && a.LF != null && Math.abs(a.LF - b.LS) <= TOL;
         const g = bad ? grp.bad : crit ? grp.crit : grp.norm;
-        const xm = sS > pE ? pE + Math.min(GANTT_DAY, (sS - pE) / 2) : pE;
-        g.x.push(ganttIsoT(pE), ganttIsoT(xm), ganttIsoT(xm), ganttIsoT(sS), null);
-        g.y.push(from, from, to, to, null);
-        g.ax.push(ganttIsoT(sS));g.ay.push(to);g.sym.push(bad ? 'triangle-left' : 'triangle-right');
+        const dir = yB > yA ? 1 : -1,gapY = yB - dir * 0.5;
+        const xm = pE + Math.min(GANTT_DAY, (sS - pE) / 2);
+        g.d.push(rounded(sS - pE >= 2 * stub ?
+        [[pE, yA], [xm, yA], [xm, yB], [sS, yB]] :
+        [[pE, yA], [pE + stub, yA], [pE + stub, gapY], [sS - stub, gapY], [sS - stub, yB], [sS, yB]]));
+        g.ax.push(ganttIsoT(sS));g.ay.push(to);
       });
       const lineCol = chart.ganttLinkColor || (darkMode ? 'rgba(203,213,225,0.6)' : 'rgba(71,85,105,0.55)');
       const linkW = Math.max(0.5, numOr(chart.ganttLinkWidth, 1.2));
       const arrowSz = Math.max(0, numOr(chart.ganttArrowSize, 8));
       const add = (g, color, dash, width) => {
         if (!g.ax.length) return;
-        traces.push({ type: 'scatter', mode: 'lines', x: g.x, y: g.y, line: { color, width, dash }, connectgaps: false, hoverinfo: 'skip', showlegend: false, name: 'dependencies' });
-        if (arrowSz > 0) traces.push({ type: 'scatter', mode: 'markers', x: g.ax, y: g.ay, marker: { symbol: g.sym, size: arrowSz, color }, hoverinfo: 'skip', showlegend: false, name: 'dependencies' });
+        linkPaths.push({ d: g.d.join(' '), color, width, dash });
+        // Every route now enters the successor from the left, so every arrowhead points right.
+        if (arrowSz > 0) traces.push({ type: 'scatter', mode: 'markers', x: g.ax, y: g.ay, marker: { symbol: 'triangle-right', size: arrowSz, color }, hoverinfo: 'skip', showlegend: false, name: 'dependencies' });
       };
       add(grp.norm, lineCol, 'solid', linkW);
       add(grp.crit, critColor, 'solid', Math.max(linkW, critW * 0.8));
@@ -13971,7 +13995,7 @@ with the analysis defaults, this block wins.
     }
     const lo = Math.min(...items.map((it) => it.sMs), ...[...baseOf.values()].map((b) => b.bsMs)),hi = Math.max(...items.map((it) => it.eMs), ...[...baseOf.values()].map((b) => b.beMs));
     const critCount = critOn ? [...nodes.keys()].filter(isCrit).length : 0;
-    traces[0].meta = { cluesGantt: { order, labels, lanes: lanes.map((l) => ({ name: l.name, first: l.first, last: l.last })), laned: !!laneKey, tree: !!parKey, baseline: baseOf.size > 0, lo, hi, skipped, asOf, snapKey, tasks: items.length ? seen.size : 0, deps: !!depKey, links: links.length, cpmOn, critOn, critCount, conflicts, unmatched, cycle } };
+    traces[0].meta = { cluesGantt: { order, labels, lanes: lanes.map((l) => ({ name: l.name, first: l.first, last: l.last })), laned: !!laneKey, tree: !!parKey, linkPaths, baseline: baseOf.size > 0, lo, hi, skipped, asOf, snapKey, tasks: items.length ? seen.size : 0, deps: !!depKey, links: links.length, cpmOn, critOn, critCount, conflicts, unmatched, cycle } };
     return traces;
   };
 
@@ -18947,6 +18971,8 @@ with the analysis defaults, this block wins.
             dynLayout.annotations = [...(dynLayout.annotations || []), { xref: 'x', yref: 'paper', x: lineIso, y: 1, xanchor: 'left', yanchor: 'top', xshift: 3, showarrow: false, text: lineLbl, font: { size: 10, color: tc } }];
           }
         }
+        // Dependency arrows (buildGanttTraces): one path per style, above the bars.
+        if (g && g.linkPaths) g.linkPaths.forEach((lp) => gShapes.push({ type: 'path', xref: 'x', yref: 'y', path: lp.d, line: { color: lp.color, width: lp.width, dash: lp.dash }, layer: 'above' }));
         if (gShapes.length) dynLayout.shapes = [...(dynLayout.shapes || []), ...gShapes];
         const gNotes = [];
         if (g && g.asOf) gNotes.push(`Plan as of ${g.asOf} (latest ${getCatAlias(g.snapKey)} in the rows shown)`);
