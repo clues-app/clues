@@ -5,6 +5,7 @@ Short notes on what's new. The full manual is the [User Guide](USER_GUIDE.md).
 ## 2026-10-02
 
 - **Gantt summary tasks, as in Planner and MS Project.** Pick the column that names each task's summary (parent) task - by task name or ID - under **⋮ > Gantt style > Summary tasks > Summary task column** (an auto-built Gantt picks a column called *Summary task* or *Parent* by itself). Each summary row then follows with its own tasks, gets a **bold** label and a thin **bracket bar** with end caps spanning its tasks (its own dates count only when none of its tasks is dated), and stays out of the status colors and the critical-path outline. **Click a summary bar to fold** its tasks away (the label turns from ▾ to ▸; links to the hidden tasks go with them) and click again to show them; folds are saved with the chart, so a deck can open folded. **Summary bar color** sits in the same section (default: the text color). Swimlanes are off while a summary column is set.
+- **The AI knows the summary settings.** The AI context explains them, and the chart_pm op reads and sets all three: `summary` (the column), `summary_color`, and `folded` (the summary task names whose tasks are hidden, e.g. `"folded": ["Question 2"]`; `[]` shows all). A chart's line in the context shows its summary column, bar color and folded summaries by name. The menu's **Folded summary tasks** row counts the folds and has **Unfold all**.
 
 ## 2026-10-01
 
