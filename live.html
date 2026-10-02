@@ -1266,6 +1266,7 @@ const PM_STYLE_PARAMS = {
   lanes: { f: 'ganttLanes', t: 'catcol', kinds: ['gantt'], group: 'Layout', label: 'Swimlanes by', structural: true },
   folded_lanes: { f: 'ganttLanesCollapsed', t: 'list', kinds: ['gantt'], group: 'Layout', label: 'Folded swimlanes', structural: true, show: (c) => !!c.ganttLanes },
   lane_color: { f: 'ganttLaneColor', t: 'color', kinds: ['gantt'], group: 'Layout', label: 'Swimlane bar color', auto: 'summary bar color', show: (c) => !!c.ganttLanes },
+  fit_labels: { f: 'ganttFitLabels', t: 'bool', kinds: ['gantt'], group: 'Layout', label: 'Fit task names to the rows (6-14 px)' },
   summary: { f: 'ganttParent', t: 'catcol', kinds: ['gantt'], group: 'Summary tasks', label: 'Summary task column', structural: true },
   summary_color: { f: 'ganttSumColor', t: 'color', kinds: ['gantt'], group: 'Summary tasks', label: 'Summary bar color', auto: 'text color', show: (c) => !!c.ganttParent },
   folded: { f: 'ganttCollapsed', t: 'list', kinds: ['gantt'], group: 'Summary tasks', label: 'Folded summary tasks', structural: true, show: (c) => !!c.ganttParent },
@@ -1318,7 +1319,7 @@ const pmStyleValue = (s, v, cols) => {
 const pmStyleOpDesc = () => 'Style knobs for the PROJECT charts - Gantt, radar, and burnup/burndown (a time series with a per-date Values mode). Pass only what you change; "" returns a knob to automatic. Knobs: ' +
 Object.entries(PM_STYLE_PARAMS).map(([k, s]) => `"${k}" (${s.kinds.join('/')}: ${s.t === 'num' ? `number${s.min != null ? ` ${s.min}..${s.max}` : ''}` : s.t === 'enum' ? s.vals.filter(Boolean).join('|') : s.t === 'bool' ? 'true|false' : s.t === 'color' ? 'hex' : s.t === 'date' ? 'YYYY-MM-DD' : s.t === 'catcol' ? 'categorical column' : s.t === 'list' ? 'list of task names' : 'date column'})`).join(', ') +
 '. border_width / border_color outline every task bar and milestone (the color defaults to the bar\'s own group color; critical tasks keep the critical-path outline); critical_* style the critical-path outline and links; today_at "asof" draws the date line at the As-of snapshot date; lanes groups rows into swimlanes, each headed by a bold row with a bracket bar across its span (a click folds the lane); folded_lanes lists the lane values whose rows are hidden ([] or "" shows all); ' +
-'summary names the column holding each task\'s summary (parent) task, by task name or ID (e.g. "Summary task" or "Parent"): each summary row then spans its tasks with a bold label and a thin bracket bar, its tasks listed under it, kept out of the status colors and the critical outline; with lanes too, the tree sits inside each swimlane (e.g. lanes = Project for several projects); summary_color colors the summary brackets (and the lane brackets unless lane_color is set); lane_color colors the swimlane brackets, e.g. one color for projects and another for their summary tasks (default: the text color); ' +
+'summary names the column holding each task\'s summary (parent) task, by task name or ID (e.g. "Summary task" or "Parent"): each summary row then spans its tasks with a bold label and a thin bracket bar, its tasks listed under it, kept out of the status colors and the critical outline; with lanes too, the tree sits inside each swimlane (e.g. lanes = Project for several projects); summary_color colors the summary brackets (and the lane brackets unless lane_color is set); lane_color colors the swimlane brackets, e.g. one color for projects and another for their summary tasks (once set, these colors also color the lane and summary names on the axis); fit_labels true sizes the task names on the axis to the row height (6-14 px), so a crowded plan stays readable (default: the text color); ' +
 'folded lists the summary task names whose tasks are hidden (as a viewer clicking a summary bar does; [] or "" shows all) - names must be values of the Task column; baseline_start/end draw a thin planned-dates bar under each task; project draws a straight-line projected finish from the last project_window periods (a pace, not a forecast model).';
 
 // Styling ops - APPEARANCE ONLY, applied automatically on import (and reversible per response).
@@ -2269,7 +2270,7 @@ const withTraceDisplayOptions = (traces, showLabels = true, showLegend = true) =
   });
 };
 
-const PlotlyChart = ({ chartId, data, layout, config, frames, onRelayout, onSelected, onDeselect, onRestyle, onLegendClick, onClickAnnotation, onPointClick, pointerOn, onTickClick, tickClickable, onTitleDrag, spin, blink, replay, onReplayToggle, animLoop, eager }) => {
+const PlotlyChart = ({ chartId, data, layout, config, frames, onRelayout, onSelected, onDeselect, onRestyle, onLegendClick, onClickAnnotation, onPointClick, pointerOn, onTickClick, tickClickable, fitTicks, onTitleDrag, spin, blink, replay, onReplayToggle, animLoop, eager }) => {
   const divRef = useRef(null);
   // Replay scrubber: a range input overlaid at the plot's bottom (the plot parent
   // is position:relative). The engine feeds it via refs - no React re-renders.
@@ -2302,11 +2303,18 @@ const PlotlyChart = ({ chartId, data, layout, config, frames, onRelayout, onSele
     return () => io.disconnect();
   }, [armed]);
 
+  // Fitted y-axis name size (fitTicks): measured after a draw, then reused by every redraw so the
+  // names do not flash at the base size first.
+  const fitRef = useRef(null);
+  const fitKey = fitTicks ? `${fitTicks.min}:${fitTicks.max}` : '';
   useEffect(() => {
     if (!armed) return;
     if (!divRef.current) return;
     const node = divRef.current;
     let cancelled = false;
+    if (!fitKey) fitRef.current = null;
+    const drawLayout = fitKey && fitRef.current && layout && layout.yaxis ?
+    { ...layout, yaxis: { ...layout.yaxis, tickfont: { ...(layout.yaxis.tickfont || {}), size: fitRef.current } } } : layout;
     // Soften each trace's hover-label background (series color lifted toward white) unless
     // the trace opted out (hoverinfo skip) or set its own hoverlabel color.
     const hoverData = (data || []).map((t) => {
@@ -2322,8 +2330,8 @@ const PlotlyChart = ({ chartId, data, layout, config, frames, onRelayout, onSele
     const configChanged = prevConfigRef.current !== null && prevConfigRef.current !== configStr;
     prevConfigRef.current = configStr;
     (configChanged ?
-    Plotly.newPlot(node, hoverData, layout, { responsive: true, ...config }) :
-    Plotly.react(node, hoverData, layout, { responsive: true, ...config })).
+    Plotly.newPlot(node, hoverData, drawLayout, { responsive: true, ...config }) :
+    Plotly.react(node, hoverData, drawLayout, { responsive: true, ...config })).
     then(() => {
       if (cancelled) return;
       if (configChanged) setPlotEpoch((e) => e + 1);
@@ -2333,7 +2341,30 @@ const PlotlyChart = ({ chartId, data, layout, config, frames, onRelayout, onSele
       });
     });
     return () => {cancelled = true;};
-  }, [armed, dataStr, layoutStr, configStr, framesStr]);
+  }, [armed, dataStr, layoutStr, configStr, framesStr, fitKey]);
+
+  // fitTicks {min, max}: the y-axis names take the size that fits the row height (about 62% of
+  // it), within min..max - after every draw, resize or fold. The plot's height does not depend
+  // on the y names, so one adjustment settles it.
+  useEffect(() => {
+    const node = divRef.current;
+    if (!armed || !node || typeof node.on !== 'function' || !fitKey) return;
+    const [mn, mx] = fitKey.split(':').map(Number);
+    let pending = null;
+    const fit = () => {
+      const L = node._fullLayout,ya = L && L.yaxis;
+      const rows = ya ? ya.categoryarray && ya.categoryarray.length || (ya._categories || []).length : 0;
+      const h = L && L._size && L._size.h;
+      if (!rows || !h) return;
+      const fs = Math.max(mn, Math.min(mx, Math.round(h / rows * 0.62)));
+      fitRef.current = fs;
+      if (Math.abs((ya.tickfont && ya.tickfont.size || 0) - fs) >= 1 && !pending)
+      pending = setTimeout(() => {pending = null;try {Plotly.relayout(node, { 'yaxis.tickfont.size': fs });} catch (e) {}}, 0);
+    };
+    node.on('plotly_afterplot', fit);
+    fit();
+    return () => {if (pending) clearTimeout(pending);if (node.removeListener) node.removeListener('plotly_afterplot', fit);};
+  }, [armed, plotEpoch, fitKey]);
 
   // Frame-animation repeats (bar race). Plotly's Play button runs the frames once;
   // when a run ENDS we start it over until the loop count is spent. A slider drag
@@ -4169,7 +4200,7 @@ const EMBEDDED_AUTOLOAD = false;
 // alias shell is not functional drift. Single-line contract like the EMBEDDED_*
 // lines above - it is normalized out of computeShellHash, so stamping it never
 // changes this shell's own hash.
-const SHELL_HASH_ALIASES = ['d314813d'];
+const SHELL_HASH_ALIASES = ['199f9f61'];
 // Set to a unique id by the Portable HTML export so each portable file keeps its
 // own autosave, isolated from the canonical app and from other portables (file://
 // pages otherwise share a single localStorage and would cross-contaminate).
@@ -14056,9 +14087,19 @@ with the analysis defaults, this block wins.
     } else if (links.length) {
       links.forEach(({ from, to }) => {if (nodes.get(to).S < nodes.get(from).E - TOL) conflicts++;});
     }
+    // Lane and summary names on the axis take their bracket colors once one is set (Swimlane / Summary
+    // bar color); until then they keep the axis color like every other name.
+    const capLane = chart.ganttLaneColor || chart.ganttSumColor || '',capSum = chart.ganttSumColor || '';
+    const sumNames = new Set(items.filter((it) => it.sum).map((it) => it.name));
+    const shownLabels = labels.map((l, j) => {
+      const k = order[j];
+      if (capLane && k.startsWith(LANE)) return `<span style="color:${capLane}">${l}</span>`;
+      if (capSum && sumNames.has(k)) return `<span style="color:${capSum}">${l}</span>`;
+      return l;
+    });
     const lo = Math.min(...items.map((it) => it.sMs), ...[...baseOf.values()].map((b) => b.bsMs)),hi = Math.max(...items.map((it) => it.eMs), ...[...baseOf.values()].map((b) => b.beMs));
     const critCount = critOn ? [...nodes.keys()].filter(isCrit).length : 0;
-    traces[0].meta = { cluesGantt: { order, labels, lanes: lanes.map((l) => ({ name: l.name, first: l.first, last: l.last })), laned: !!laneKey, tree: !!parKey, linkPaths, foldable: [...lanes.map((l) => l.key), ...items.filter((it) => it.sum).map((it) => it.name)], baseline: baseOf.size > 0, lo, hi, skipped, asOf, snapKey, tasks: items.length ? seen.size : 0, deps: !!depKey, links: links.length, cpmOn, critOn, critCount, conflicts, unmatched, cycle } };
+    traces[0].meta = { cluesGantt: { order, labels: shownLabels, lanes: lanes.map((l) => ({ name: l.name, first: l.first, last: l.last })), laned: !!laneKey, tree: !!parKey, linkPaths, foldable: [...lanes.map((l) => l.key), ...items.filter((it) => it.sum).map((it) => it.name)], baseline: baseOf.size > 0, lo, hi, skipped, asOf, snapKey, tasks: items.length ? seen.size : 0, deps: !!depKey, links: links.length, cpmOn, critOn, critCount, conflicts, unmatched, cycle } };
     return traces;
   };
 
@@ -19150,7 +19191,7 @@ with the analysis defaults, this block wins.
           showTitle: getChartOption(chart, 'showTitle', true), onToggleTitle: (v) => setTimeCharts((charts) => charts.map((c) => c.id === chart.id ? { ...c, showTitle: v } : c)),
           onReorderStart: () => setDragChart({ family: 'time', id: chart.id }), onReorderOver: () => {if (dragChart && dragChart.family === 'time' && dragChart.id !== chart.id) setDragOverId(chart.id);}, onReorderDrop: () => {if (dragChart && dragChart.family === 'time') setTimeCharts((cs) => reorderCharts(cs, dragChart.id, chart.id));endChartDrag();}, onReorderEnd: endChartDrag, reorderActive: !!dragChart && dragChart.family === 'time' && dragChart.id !== chart.id && dragOverId === chart.id }, /*#__PURE__*/
 
-        React.createElement(PlotlyChart, { onTitleDrag: (xy) => setTimeCharts((cs) => cs.map((c) => c.id === chart.id ? { ...c, titleX: xy.x, titleY: xy.y } : c)), onClickAnnotation: (ev) => handleNoteClick('time', chart, ev), onPointClick: timeChartType === 'gantt' && (chart.ganttParent || chart.ganttLanes) ? (ev) => toggleGanttFold(chart, ev) : undefined, pointerOn: timeChartType === 'gantt' && (chart.ganttParent || chart.ganttLanes) ? ganttFoldable : undefined, onTickClick: timeChartType === 'gantt' && (chart.ganttParent || chart.ganttLanes) ? (cat) => toggleGanttFoldLabel(chart, cat) : undefined, tickClickable: timeChartType === 'gantt' && (chart.ganttParent || chart.ganttLanes) ? (cat) => (((traces || []).find((tr) => tr && tr.meta && tr.meta.cluesGantt) || {}).meta || { cluesGantt: {} }).cluesGantt.foldable?.includes(cat) : undefined, chartId: `time-${chart.id}`, data: traces, layout: applyChartCanvas(dynLayout, chart), config: getPlotlyConfig(chart), frames: raceData ? raceData.frames : undefined, animLoop: raceData && raceData.loop ? { ...raceData.loop, loops: chart.raceLoops || '1' } : null, eager: sheetCapture, onRestyle: (node) => handleLegendVisibility(node, chart, setTimeCharts), onRelayout: (eventData, gd) => handleLegendRelayout(eventData, chart, setTimeCharts, gd), onSelected: (eventData) => handleChartSelection('Time series', eventData, { yLabel: getQuantAlias(chart.quantKey) }), onDeselect: clearBrushHighlight })
+        React.createElement(PlotlyChart, { onTitleDrag: (xy) => setTimeCharts((cs) => cs.map((c) => c.id === chart.id ? { ...c, titleX: xy.x, titleY: xy.y } : c)), onClickAnnotation: (ev) => handleNoteClick('time', chart, ev), onPointClick: timeChartType === 'gantt' && (chart.ganttParent || chart.ganttLanes) ? (ev) => toggleGanttFold(chart, ev) : undefined, pointerOn: timeChartType === 'gantt' && (chart.ganttParent || chart.ganttLanes) ? ganttFoldable : undefined, onTickClick: timeChartType === 'gantt' && (chart.ganttParent || chart.ganttLanes) ? (cat) => toggleGanttFoldLabel(chart, cat) : undefined, fitTicks: timeChartType === 'gantt' && chart.ganttFitLabels ? { min: 6, max: 14 } : undefined, tickClickable: timeChartType === 'gantt' && (chart.ganttParent || chart.ganttLanes) ? (cat) => (((traces || []).find((tr) => tr && tr.meta && tr.meta.cluesGantt) || {}).meta || { cluesGantt: {} }).cluesGantt.foldable?.includes(cat) : undefined, chartId: `time-${chart.id}`, data: traces, layout: applyChartCanvas(dynLayout, chart), config: getPlotlyConfig(chart), frames: raceData ? raceData.frames : undefined, animLoop: raceData && raceData.loop ? { ...raceData.loop, loops: chart.raceLoops || '1' } : null, eager: sheetCapture, onRestyle: (node) => handleLegendVisibility(node, chart, setTimeCharts), onRelayout: (eventData, gd) => handleLegendRelayout(eventData, chart, setTimeCharts, gd), onSelected: (eventData) => handleChartSelection('Time series', eventData, { yLabel: getQuantAlias(chart.quantKey) }), onDeselect: clearBrushHighlight })
         ));
 
     })
