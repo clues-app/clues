@@ -2,6 +2,11 @@
 
 Short notes on what's new. The full manual is the [User Guide](USER_GUIDE.md).
 
+## 2026-10-01
+
+- **Open a deck from a link.** `https://clues.ai/#open=<address of a .clue>` (or `?open=`) fetches the deck and opens it exactly like a dropped `.clue` - password prompt, drift check, and the saved Present mode - so a team can put "open the status deck" behind one click, with no file to download or pass around. If the deck has a connected data source, it checks it right away, so the charts show the source's latest data. The session you had is kept one step back: the "Deck opened" message offers **Back to my session**. Only https addresses are accepted (plus localhost for development); the site holding the deck must allow clues.ai to read it, and a refused or unreachable link says so and brings your session back. Use the `#open=` form when the address carries an access key: browsers never send the part after `#` to clues.ai. A phone-sized screen plays the linked deck as a presentation, like the welcome screen's Open button.
+- **Smoke test** covers the link: the sample deck opened from `#open=` must present with data, and an address Clues does not accept must open nothing and say so.
+
 ## 2026-09-30
 
 - **Project-management charts.** Four new types plus burnup/burndown, all native Plotly (no new dependency), each with AI encodings in the chart registry:
