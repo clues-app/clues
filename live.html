@@ -4219,7 +4219,7 @@ const EMBEDDED_AUTOLOAD = false;
 // alias shell is not functional drift. Single-line contract like the EMBEDDED_*
 // lines above - it is normalized out of computeShellHash, so stamping it never
 // changes this shell's own hash.
-const SHELL_HASH_ALIASES = ['17d9412c'];
+const SHELL_HASH_ALIASES = ['e0bbe975'];
 // Set to a unique id by the Portable HTML export so each portable file keeps its
 // own autosave, isolated from the canonical app and from other portables (file://
 // pages otherwise share a single localStorage and would cross-contaminate).
@@ -4227,7 +4227,7 @@ const EMBEDDED_EXPORT_ID = '';
 const AUTOSAVE_KEY = EMBEDDED_EXPORT_ID ? 'analyzer_autosave_' + EMBEDDED_EXPORT_ID : 'analyzer_autosave';
 // Shell-app release date, used as the "dataset date" for the built-in showcase and
 // saved into every workspace. Bump this when releasing a new build.
-const APP_VERSION = '2026-10-02';
+const APP_VERSION = '2026-10-03';
 // Stamped by the Portable HTML export with the date the portable was created. Falls
 // back to APP_VERSION (the showcase's effective date) in the canonical app.
 const EMBEDDED_WORKSPACE_DATE = '';
@@ -5202,6 +5202,10 @@ const App = () => {
   const [sourceVisibleLimit, setSourceVisibleLimit] = useState(100);
 
   const [data, setData] = useState(null);
+  const pendingAiOnOpenRef = useRef(null);
+  const pendingAiRequestRef = useRef(null);
+  const importAiSpecRef = useRef(null); // the latest importAiSpec: a reply arriving a minute later applies to the deck as it is then
+  const [aiOnOpenTick, setAiOnOpenTick] = useState(0);
   const [fileName, setFileName] = useState('');
   // Raw-byte SHA-256 fingerprint of the source file at load, for the "Verify source" check. This is a
   // STRICT file-identity check (exact bytes), stored with the session/.clue. { name, size, lastModified,
@@ -6053,6 +6057,21 @@ const App = () => {
     return Math.max(right, Math.round(Number(designH) * 1.6) || 0);
   };
   const restoreState = (state, opts = {}) => {
+    // A deck can carry an AI reply to apply when it opens (aiOnOpen, e.g. the AI narrative a
+    // project app writes from its latest data). It goes through the normal AI import below -
+    // validated, applied, listed in Dataset > AI responses with its undo - once this state is in
+    // place. Saving never writes the field back, so it applies once per open.
+    // aiOnOpen: the reply itself (a spec object, or the assistant's text as it answered - the same text a
+    // user pastes). aiOnOpenRequest {url, instruction, from}: ask the deck's own site for that reply, with
+    // this deck's full AI context (the effect below; links only, same site only).
+    if (state && state.aiOnOpen && (typeof state.aiOnOpen === 'string' || typeof state.aiOnOpen === 'object' && !Array.isArray(state.aiOnOpen))) {
+      pendingAiOnOpenRef.current = state.aiOnOpen;
+      setAiOnOpenTick((n) => n + 1);
+    }
+    if (state && state.aiOnOpenRequest && typeof state.aiOnOpenRequest === 'object' && typeof state.aiOnOpenRequest.url === 'string') {
+      pendingAiRequestRef.current = state.aiOnOpenRequest;
+      setAiOnOpenTick((n) => n + 1);
+    }
     setDatasetDate(state.datasetDate || EMBEDDED_WORKSPACE_DATE || APP_VERSION);
     setDatasetDescription(state.datasetDescription || '');
     // Migrate a legacy single-signature block to a chain of one (v1 semantics kept).
@@ -9605,7 +9624,7 @@ with the analysis defaults, this block wins.
     }
     return best != null ? best : s.trim();
   };
-  const importAiSpec = (text, source) => {
+  const importAiSpec = (text, source, opts = {}) => {
     let spec;
     const rawSpec = extractSpecJson(text);
     try {spec = JSON.parse(rawSpec);} catch (e) {
@@ -9636,6 +9655,7 @@ with the analysis defaults, this block wins.
       seriesTheme: st.seriesTheme, fieldFormats: st.fieldFormats, fieldStyleConfig: st.fieldStyleConfig, showTrendlines: st.showTrendlines, showTrendFormula: st.showTrendFormula,
       aiImports: [...(cur.aiImports || []), rec]
     });
+    if (opts.quiet) return { ok: true, result: rec };
     const firstFam = ['rel', 'dist', 'comp', 'time'].find((f) => byFamily[f].length);
     const famTab = { rel: 'relationships', dist: 'distributions', comp: 'comparisons', time: 'time' };
     if (firstFam) setActiveTab(famTab[firstFam]);else
@@ -9651,6 +9671,57 @@ with the analysis defaults, this block wins.
     if (hasDeckGeom && !presoView && !presentMode) showToast('Chart sizes / presentation notes were applied - they show in Presentation view: hide the side panel (1-column layout) or hit Present.');
     return { ok: true, result: rec };
   };
+  // The AI reply a deck carried (restoreState noted it): applied once the deck's data and charts are
+  // in place, quietly - it is listed in Dataset > AI responses; only a refusal is said out loud.
+  useEffect(() => {
+    const spec = pendingAiOnOpenRef.current;
+    if (!spec || !data) return;
+    pendingAiOnOpenRef.current = null;
+    let res;
+    try {res = importAiSpec(typeof spec === 'string' ? spec : JSON.stringify(spec), 'deck', { quiet: true });} catch (e) {res = { ok: false, errors: [String(e && e.message || e)] };}
+    if (!res || !res.ok) showToast('The AI text that came with this deck was not applied: ' + ((res && res.errors || []).slice(0, 2).join(' ') || 'unknown reason') + '.', 'error');
+  }, [aiOnOpenTick, data]);
+  // A deck that asks for its AI reply (aiOnOpenRequest): the same as Copy AI context + paste, without the copying.
+  // Clues builds the context exactly as Copy AI context does by default (styling mode - every styling operation,
+  // slide comments included - all charts, data samples), sends it with the deck's instruction to the deck's OWN
+  // site (a deck opened from a link only; another address is refused), and applies the answer like a pasted
+  // reply: validated, listed in Dataset > AI responses, undoable. A reply can take a minute; a notice counts it.
+  useEffect(() => {
+    const ask = pendingAiRequestRef.current;
+    if (!ask || !data) return;
+    pendingAiRequestRef.current = null;
+    const link = linkedDeck();
+    let target = null;
+    try {target = new URL(ask.url);} catch (e) {target = null;}
+    const home = link && link.ok ? new URL(link.url).origin : '';
+    if (!target || !home || target.origin !== home || !(target.protocol === 'https:' || target.protocol === 'http:' && /^(localhost|127\.0\.0\.1)$/.test(target.hostname))) {
+      showToast('This deck asked for an AI reply from an address other than the one it came from. Nothing was sent.', 'error');
+      return;
+    }
+    const who = ask.from ? String(ask.from).slice(0, 60) : target.host;
+    let context = '';
+    try {context = buildAiContext(true, sessionChartsManifest().map((c) => c.id), 'style', false);} catch (e) {context = '';}
+    if (!context || context === 'Load a dataset first.') {showToast('The AI was not asked: this deck has no data to describe.', 'error');return;}
+    const started = Date.now();
+    // The "Deck opened ... Back to my session" notice keeps its 12 s; the waiting notice starts after it.
+    const tick = () => showToast(`Asking the AI for this deck (${who}, ${Math.round((Date.now() - started) / 1000)} s)...`, 'success');
+    const timer = setInterval(() => {if (Date.now() - started >= 12000) tick();}, 4000);
+    (async () => {
+      let text = '',status = 0;
+      try {
+        const r = await fetch(target.toString(), { method: 'POST', headers: { 'Content-Type': 'text/plain' }, cache: 'no-store',
+          body: JSON.stringify({ instruction: String(ask.instruction || ''), context }) });
+        status = r.status;text = await r.text();
+      } catch (e) {clearInterval(timer);showToast(`The AI could not be asked: ${target.host} could not be reached.`, 'error');return;}
+      clearInterval(timer);
+      if (status !== 200) {showToast(`No AI reply: ${who} answered HTTP ${status}${text && !/^\s*</.test(text) ? ' - ' + text.slice(0, 220) : ''}.`, 'error');return;}
+      let res;
+      try {res = importAiSpecRef.current(text, 'deck', { quiet: true });} catch (e) {res = { ok: false, errors: [String(e && e.message || e)] };}
+      if (res && res.ok) showToast(`AI reply applied (${who}, ${Math.round((Date.now() - started) / 1000)} s) - see Dataset > AI responses.`, 'success');else
+      showToast('The AI reply was not applied: ' + ((res && res.errors || []).slice(0, 2).join(' ') || 'unknown reason') + '.', 'error');
+    })();
+  }, [aiOnOpenTick, data]);
+  importAiSpecRef.current = importAiSpec;
   // Rebuild the charts for a past import from its stored spec (e.g. after Remove AI charts).
   const rebuildImport = (rec) => {
     if (!rec || !rec.spec) {setSaveToast('This import predates spec-saving - re-import to rebuild it.');setTimeout(() => setSaveToast(''), 5000);return;}

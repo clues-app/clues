@@ -2,6 +2,11 @@
 
 Short notes on what's new. The full manual is the [User Guide](USER_GUIDE.md).
 
+## 2026-10-03
+
+- **A deck can ask for its AI reply as it opens.** A deck opened from a link may carry `aiOnOpenRequest` (an address on the deck's own site and an instruction). Clues then does what a user does with Copy AI context, without the copying: it builds its full AI context exactly as Copy AI context does by default (styling mode - every styling operation, slide comments included - all charts, data samples), sends it with the instruction to that address, and applies the answer like a pasted reply - validated, listed in **Dataset > AI responses**, undoable. A notice counts the wait. Only the site the deck came from is asked; any other address is refused and nothing is sent. `aiOnOpen` also takes the reply text as an assistant wrote it. The smoke test opens a deck that asks.
+- **A deck can carry an AI reply to apply when it opens.** A `.clue` with an `aiOnOpen` field (an AI reply in the usual spec format) has it applied through the normal **AI import** as the deck opens - validated, applied, and listed in **Dataset > AI responses** with its undo - quietly, without the import dialog. A project app uses it to send its AI narrative (presentation notes, notes in charts, subtitles written from its latest data) with each deck, so the narrative can be seen and undone in Clues. Saving never writes the field back: it applies once per open. The smoke test opens such a deck.
+
 ## 2026-10-02
 
 - **Gantt summary tasks, as in Planner and MS Project.** Pick the column that names each task's summary (parent) task - by task name or ID - under **⋮ > Gantt style > Summary tasks > Summary task column** (an auto-built Gantt picks a column called *Summary task* or *Parent* by itself). Each summary row then follows with its own tasks, gets a **bold** label and a thin **bracket bar** with end caps spanning its tasks (its own dates count only when none of its tasks is dated), and stays out of the status colors and the critical-path outline. **Click a summary bar to fold** its tasks away (the label turns from ▾ to ▸; links to the hidden tasks go with them) and click again to show them; folds are saved with the chart, so a deck can open folded. **Summary bar color** sits in the same section (default: the text color). Swimlanes are off while a summary column is set.
