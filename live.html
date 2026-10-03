@@ -1360,7 +1360,7 @@ const CLUES_AI_STYLE_OPS = {
   chart_note: { scope: 'chart', params: ['ref', 'id', 'x', 'y', 'text', 'color', 'size', 'arrow', 'width', 'remove'], desc: 'A short TEXT NOTE pinned INSIDE a chart at data coordinates ("x", "y" - numbers, dates, or category names), with an arrow pointing at that spot ("arrow": false floats the text without one). Different from chart_preso_note, which sits beside the chart. "text" required (plain text; <b>/<i>/<br> allowed), "size" px (default 12), "color" hex, "width" px 40..800 - the note becomes a BOX: text wraps to that width and the height follows ("" = one line). Same charts as chart_shade. Pass an existing "id" to edit; "remove": an id or "all".' },
   deck_image: { scope: 'chart', params: ['ref', 'image', 'position', 'width', 'x', 'y', 'remove'], desc: 'Place an image from the session\'s image library BESIDE a chart on the deck page (like a presentation note): "image" = the library file name (see "## Image library" in the context), "position" left | right | top | bottom (default left), "width" px (>= 80) or a percent of the band ("25%"). "position": "free" places it ANYWHERE on the chart\'s row: "x" (px or band percent, from the row\'s left edge) and "y" (px from the row\'s top; may be negative to overlap upward). "remove": true takes the image off the chart. Renders in Presentation view; the image itself is embedded in the session; the user can drag it afterwards.' },
   chart_duplicate: { scope: 'chart', params: ['ref', 'title'], desc: 'Duplicate an existing chart (by its "ref"): an independent copy - fields, styling, canvas, panel geometry, and presentation note - inserted right AFTER the original. Optional "title" names the copy. The copy gets its OWN new ref (re-copy the AI context to target it); the styling-batch undo does not remove copies - the user deletes one from its chart menu.' },
-  chart_preso_note: { scope: 'chart', params: ['ref', 'text', 'position', 'show', 'font', 'size', 'width', 'gap', 'color', 'align', 'left', 'x', 'y', 'match'], desc: 'A PRESENTATION note: free-standing rich text placed NEXT TO a chart (not inside its card) - made for Present-mode storytelling. "text": limited HTML (<b>, <i>, <u>, <p>, <br>, <ul>/<ol>/<li>, <h1>-<h3>, <span style="font-size/font-family/color/text-align...">); pass "" to remove. "position": left | right | top | bottom (default left). "show": true/false (default true when text is given). "font": one of ' + AI_FONT_TOKEN_LIST + ' ("" = app font). "size": base text px 10..48. "align": left | center | right. "width": the note column - px 160..700 or a percent of the band ("25%", 8..60%) for screen-proportional layouts (left/right). "gap": px between note and chart 0..200 (top/bottom). "left": offset of a SIDE note from the band\'s left edge - px or a band percent ("8.3%" = start of column 2 on a 12-column grid; "" = anchored to the band edge; applies with a width-capped chart). "color": base text color hex ("" = theme ink; per-phrase colors go in the HTML via <span style="color:...">). Settings are PER NOTE: an omitted attribute means the default, NOT another note\'s value. To make a note CONSISTENT with an existing one, pass "match": <the ref of the chart whose note to copy> - it copies that note\'s STYLING (font, size, color, width, gap, position) in one go - but never its "left" offset, which is per-chart geometry; any attribute you also pass explicitly overrides the copied value. Prefer "match" over copying attributes by hand. "position" also accepts "free": the note floats ANYWHERE on its chart row at "x" (px or band percent, from the row left edge) / "y" (px from the row top; may be negative to overlap upward) - the user can drag it afterwards, and x/y are per-chart geometry (never copied by "match"). Notes show in the 1-chart-per-row layout only; the 2-column grid keeps them but hides them.' },
+  chart_preso_note: { scope: 'chart', params: ['ref', 'text', 'position', 'show', 'font', 'size', 'width', 'gap', 'color', 'align', 'left', 'x', 'y', 'match'], desc: 'A PRESENTATION note: free-standing rich text placed NEXT TO a chart (not inside its card) - made for Present-mode storytelling. "text": limited HTML (<b>, <i>, <u>, <p>, <br>, <ul>/<ol>/<li>, <h1>-<h3>, <span style="font-size/font-family/color/text-align...">); pass "" to remove. "position": left | right | top | bottom (default left). "show": true/false (default true when text is given). "font": one of ' + AI_FONT_TOKEN_LIST + ' ("" = app font). "size": base text px 10..48. "align": left | center | right. "width": the note column - px 160..700 or a percent of the band ("25%", 8..60%) for screen-proportional layouts (left/right). "gap": px between note and chart 0..200 (top/bottom). "left": offset of a SIDE note from the band\'s left edge - px or a band percent ("8.3%" = start of column 2 on a 12-column grid; "" = anchored to the band edge; applies with a width-capped chart). "color": base text color hex ("" = theme ink; per-phrase colors go in the HTML via <span style="color:...">). Settings are PER NOTE: an omitted attribute keeps THIS note\'s current value (the default for a new note), never another note\'s value - so to change only the words of an existing note, pass just "ref" and "text": its position, font, size, color, width and gap stay as they are. To make a note CONSISTENT with an existing one, pass "match": <the ref of the chart whose note to copy> - it copies that note\'s STYLING (font, size, color, width, gap, position) in one go - but never its "left" offset, which is per-chart geometry; any attribute you also pass explicitly overrides the copied value. Prefer "match" over copying attributes by hand. "position" also accepts "free": the note floats ANYWHERE on its chart row at "x" (px or band percent, from the row left edge) / "y" (px from the row top; may be negative to overlap upward) - the user can drag it afterwards, and x/y are per-chart geometry (never copied by "match"). Notes show in the 1-chart-per-row layout only; the 2-column grid keeps them but hides them.' },
   field_format: { scope: 'field', params: ['column', 'decimals', 'thousands', 'prefix', 'suffix', 'date_format'], desc: 'How a field renders on axes, hovers, and captions (display only). Numeric column: "decimals" 0..8, "thousands" true/false, "prefix" (e.g. "$"), "suffix" (e.g. " g"). Date column: "date_format" (d3, e.g. "%b %Y"). Pass "" to clear a part.' },
   chart_canvas: { scope: 'chart', params: ['ref', 'bg', 'bg_opacity', 'ink', 'legend_color', 'grid', 'grid_opacity'], desc: 'PER-CHART canvas colors, overriding the global Style-tab settings - made for charts that sit directly on a deck background. "bg": hex ("" = global/theme). "bg_opacity": 0..1 - 0 makes THIS chart fully transparent in Presentation view (plot AND card; the page background shows through - pair it with "ink" and "legend_color" so the text stays readable on the page color). "ink": hex for the chart\'s axis chrome and in-plot text - axis lines, ticks, tick labels, axis captions, 3D scene axes ("" = theme). "legend_color": hex for the legend text ("" = theme). The chart TITLE keeps its own color - use title_style for it. "grid": hex for the GRIDLINES of this chart with "grid_opacity": 0..1 alpha (e.g. a pastel grid at 0.3; "" = theme grid) - separate from "ink" so a soft grid can sit under crisp labels.' },
   chart_display: { scope: 'chart', params: ['ref', 'title', 'labels', 'legend', 'style_legend', 'trendline', 'formula', 'present', 'blink_field', 'replay_field', 'replay', 'replay_speed', 'replay_loops', 'replay_agg', 'replay_slider', 'replay_ticker_size', 'replay_ticker_color', 'replay_ticker_bg', 'replay_ticker_pos', 'theme_colors', 'range_slider', 'forecast', 'time_scrubber', 'race_trail', 'race_bars', 'race_speed', 'race_loops', 'race_gap', 'race_caption_size', 'race_caption_wrap', 'race_caption_field', 'decompose', 'trend_style', 'ohlc_style', 'ohlc_up_color', 'ohlc_down_color', 'donut_hole', 'pie_text', 'dots', 'marginal_style', 'highlight', 'highlight_color', 'highlight_other', 'wf_up_color', 'wf_down_color', 'wf_total_color', 'wf_total'], desc: 'Show/hide a chart\'s pieces (true = show, false = hide) - pass only what you change: "title", "labels" (value labels), "legend", "style_legend" (the Style-field legend), "trendline" and "formula" (scatter trendline + its equation). On a Normal Q-Q chart, "formula" shows the NORMALITY NUMBERS instead - the Q-Q correlation r and Jarque-Bera with its p-value - appended to the legend entry of each group. "present": whether the chart appears in Present mode (the full-window presentation) - build many, present few. "blink_field" (point MAPS only): name a column - points where it is truthy (true/1/yes) pulse on the map, e.g. a column marking the newest records ("" = off). "blink_color": hex for the pulsing halo ("" = automatic: series color on grouped maps, amber otherwise). "replay_field" (point MAPS and REGION maps): a date or numeric column. On a point map the dots enter one by one in that order (ACCUMULATING - earlier points stay); on a region map the regions recolor step by step with the cumulative per-region average. A ticker shows the current value and the loop restarts after a beat; "" = off. "replay_loops": how many loops before resting at the full picture - 1..99 or "forever" (default 2). "replay_agg" (region maps): what each frame shows - "average" (running average of everything so far; default, right for event data) | "latest" (the latest value per region; right for time series like monthly rates). "replay": true/false starts/stops the loop (saved with the chart, so a shared deck can open animating). "replay_speed": slow | vslow (extra slow, one loop about 80s - long time series) | fast ("" = normal, about 20s). "replay_slider": true/false - a scrubber slider overlaid at the bottom edge of the map; drag to any point of the replay, playing or not (dragging pauses the loop). The replay TICKER (the big caption showing the current value) is styleable: "replay_ticker_size" px 8..72 ("" = 30), "replay_ticker_color" hex ("" = automatic contrast ink for the surface: dark text on light basemaps/canvases, light text on dark), "replay_ticker_bg" a hex pill color behind the text for busy tile basemaps ("" or "none" = transparent, the default), "replay_ticker_pos": tl | tr | bl (default) | br corner. "range_slider" (time series only): true shows a draggable mini-timeline under the chart to zoom into a period - it changes the VIEW only, never filters the data. "forecast" (time series only): extend each line into the future with a dotted Holt-Winters forecast and a 95% band - true (automatic horizon), a NUMBER of periods (2..120), or false to remove. Computed deterministically from the data in the session; honest widening uncertainty, never invented numbers. "time_scrubber" (time series only): a slider under the chart revealing the lines up to the chosen date - drag to animate history (view only). "race_trail" (bar-race charts): the trajectory panel - "rank" (default: each category\'s POSITION over time; crossing lines show overtaking, the bump-chart look) or "value" (raw values; false to hide it is allowed only while bars are shown). "race_bars": true shows the racing-bars panel beside the trail - by DEFAULT it is hidden: the trail fills the chart, every line end carries rank AND value, and playback is smoothest. "race_speed": vslow (0.5x - half the pace of slow) | slow | fast | vfast ("" = normal) - the total duration of the whole race. "race_loops": how many times Play runs the race through - 1 (default) .. 99 or "forever". "race_gap" (only with bars shown): the space between the trail panel and the bars panel as a % of the chart width, 0..40 ("" = 8) - widen it when the trail\'s name captions collide with the bar value labels. "race_caption_size": px size of the line-end name captions, 7..30 ("" = 11); "race_caption_wrap": wrap those captions at this many characters ("" = no wrap) - long names stack onto short lines instead of running into the bars. Captions that would overlap only spread apart as far as needed, centered on their true values, with a thin LEADER LINE from each displaced caption back to its line end (the Our-World-in-Data device); when even that cannot fit, the caption font auto-shrinks to 8px before any overlap is allowed. "race_caption_field": a column name - its latest value per series rides along in every line-end caption (a date column shows the last observation date; "" = off). "decompose" (time series only): true splits each line into stacked Observed / Trend / Seasonal / Residual panels (classical decomposition, deterministic, computed from the data; seasonality from the date cadence) - the diagnostic view; false returns to the normal line. "trend_style" (scatter only): "smooth" draws the trendline as a LOESS curve with a 95% ribbon (like ggplot geom_smooth - follows curvature; the formula toggle captions it "LOESS, span 0.75"), "smooth-only" additionally hides the points (a pure conditional-mean view, like the ggplot example with no geom_point); "linear" returns to the straight least-squares line. "donut_hole" (donut charts): 0..0.9, the empty center as a fraction of the radius (default 0.5; 0 makes it a full pie). "pie_text" (pie/donut): what each slice shows - label+percent (default) | label+value | percent | value | label | none. "dots" (box/violin): the point cloud beside each box - auto (default: every point up to 10k rows, then outliers only) | all | outliers | off. "marginal_style" (scatter): box (marginal box plots) | density (smoothed per-group curves along each axis - the seaborn jointplot look) | off (remove the marginals); box and density also turn marginals ON. "wf_up_color" / "wf_down_color" / "wf_total_color" (waterfall): hex for the rising, falling, and Total bars ("" = the green/red/slate defaults); "wf_total": true/false shows or hides the Total bar. "highlight": a group-by category of this chart - that series keeps a strong MAIN color ("highlight_color" hex, default deep blue) while every other series tones down to light shades of "highlight_other" (hex, default gray) - the one-series-is-the-story device (e.g. isolate China, everyone else gray); "" = off, back to the palette.' },
@@ -4219,7 +4219,7 @@ const EMBEDDED_AUTOLOAD = false;
 // alias shell is not functional drift. Single-line contract like the EMBEDDED_*
 // lines above - it is normalized out of computeShellHash, so stamping it never
 // changes this shell's own hash.
-const SHELL_HASH_ALIASES = ['1258401f'];
+const SHELL_HASH_ALIASES = ['7cd732ab'];
 // Set to a unique id by the Portable HTML export so each portable file keeps its
 // own autosave, isolated from the canonical app and from other portables (file://
 // pages otherwise share a single localStorage and would cross-contaminate).
@@ -5322,6 +5322,7 @@ const App = () => {
   const [masterSeriesStyle, setMasterSeriesStyle] = useState({}); // the apply-to-all row's last-touched values (display only)
   const [notePopover, setNotePopover] = useState(null); // {family, chartId, noteId, cx, cy} - the click-a-note editor
   const [presentExportOpen, setPresentExportOpen] = useState(false); // the Present-bar Export menu
+  const [presentTall, setPresentTall] = useState(false); // Present bar: Height free chart (Gantt rows at a readable height)
   const [seriesTheme, setSeriesTheme] = useState(loadSavedTheme);
   // The theme is PER-SESSION: editing it changes only this session (it saves/reloads with the .clue).
   // Your GLOBAL "house style" (localStorage) is written ONLY by the explicit "Set as my default" button
@@ -5560,6 +5561,9 @@ const App = () => {
   // stored, the same deck refits whatever screen it opens on. Dragging a height
   // stores an explicit value and opts that chart out.
   const presoFitH = Math.max(320, (Number(bandH) > 300 ? Number(bandH) : 900) - (presentMode ? 150 : 132));
+  // Height free chart (Present bar, off by default; not saved): a Gantt takes the height its rows need - about
+  // 26 px a row, so fitted names reach their 14 px - even past the screen; the page scrolls. Never shorter.
+  const tallH = (h, rows) => presentMode && presentTall && rows > 0 ? Math.max(typeof h === 'number' ? h : presoFitH, rows * 26 + 170) : h;
   // Horizontal counterpart: DRAGGED (px) widths and offsets scale by the design-width
   // ratio; percent strings already resolve against the CURRENT band via bandPx and
   // must not scale twice.
@@ -6063,9 +6067,10 @@ const App = () => {
     // place. Saving never writes the field back, so it applies once per open.
     // aiOnOpen: the reply itself (a spec object, or the assistant's text as it answered - the same text a
     // user pastes). aiOnOpenRequest {url, instruction, from}: ask the deck's own site for that reply, with
-    // this deck's full AI context (the effect below; links only, same site only).
+    // this deck's full AI context (the effect below; links only, same site only). aiOnOpenPrompt: the full prompt
+    // that produced aiOnOpen, kept on its AI responses entry (Copy prompt) for checking what the AI was told.
     if (state && state.aiOnOpen && (typeof state.aiOnOpen === 'string' || typeof state.aiOnOpen === 'object' && !Array.isArray(state.aiOnOpen))) {
-      pendingAiOnOpenRef.current = state.aiOnOpen;
+      pendingAiOnOpenRef.current = { spec: state.aiOnOpen, prompt: typeof state.aiOnOpenPrompt === 'string' ? state.aiOnOpenPrompt : '' };
       setAiOnOpenTick((n) => n + 1);
     }
     if (state && state.aiOnOpenRequest && typeof state.aiOnOpenRequest === 'object' && typeof state.aiOnOpenRequest.url === 'string') {
@@ -9647,6 +9652,7 @@ with the analysis defaults, this block wins.
     };
     const st = applyStylingToState(spec.styling, merged);
     rec.styleUndo = st.undo;rec.styleCount = st.applied;
+    if (typeof opts.prompt === 'string' && opts.prompt) rec.prompt = opts.prompt; // what the AI was sent (deck replies): Copy prompt
     if (st.missedRefs && st.missedRefs.length) showToast(`${st.missedRefs.length} styling op(s) named charts that do not exist and were SKIPPED: ${st.missedRefs.slice(0, 4).join(', ')}. Refs must come from the chart manifest in the copied AI context.`, 'error');
     restoreState({
       ...merged,
@@ -9674,11 +9680,12 @@ with the analysis defaults, this block wins.
   // The AI reply a deck carried (restoreState noted it): applied once the deck's data and charts are
   // in place, quietly - it is listed in Dataset > AI responses; only a refusal is said out loud.
   useEffect(() => {
-    const spec = pendingAiOnOpenRef.current;
-    if (!spec || !data) return;
+    const pending = pendingAiOnOpenRef.current;
+    if (!pending || !data) return;
     pendingAiOnOpenRef.current = null;
+    const spec = pending.spec;
     let res;
-    try {res = importAiSpec(typeof spec === 'string' ? spec : JSON.stringify(spec), 'deck', { quiet: true });} catch (e) {res = { ok: false, errors: [String(e && e.message || e)] };}
+    try {res = importAiSpec(typeof spec === 'string' ? spec : JSON.stringify(spec), 'deck', { quiet: true, prompt: pending.prompt });} catch (e) {res = { ok: false, errors: [String(e && e.message || e)] };}
     if (!res || !res.ok) showToast('The AI text that came with this deck was not applied: ' + ((res && res.errors || []).slice(0, 2).join(' ') || 'unknown reason') + '.', 'error');
   }, [aiOnOpenTick, data]);
   // A deck that asks for its AI reply (aiOnOpenRequest): the same as Copy AI context + paste, without the copying.
@@ -9708,16 +9715,19 @@ with the analysis defaults, this block wins.
     const tick = () => showToast(`Asking the AI for this deck (${who}, ${Math.round((Date.now() - started) / 1000)} s)...`, 'success');
     const timer = setInterval(() => {if (Date.now() - started >= 12000) tick();}, 4000);
     (async () => {
-      let text = '',status = 0;
+      let text = '',status = 0,json = false;
       try {
         const r = await fetch(target.toString(), { method: 'POST', headers: { 'Content-Type': 'text/plain' }, cache: 'no-store',
-          body: JSON.stringify({ instruction: String(ask.instruction || ''), context }) });
-        status = r.status;text = await r.text();
+          body: JSON.stringify({ instruction: String(ask.instruction || ''), context, withPrompt: true }) });
+        status = r.status;text = await r.text();json = /application\/json/i.test(r.headers.get('Content-Type') || '');
       } catch (e) {clearInterval(timer);showToast(`The AI could not be asked: ${target.host} could not be reached.`, 'error');return;}
       clearInterval(timer);
       if (status !== 200) {showToast(`No AI reply: ${who} answered HTTP ${status}${text && !/^\s*</.test(text) ? ' - ' + text.slice(0, 220) : ''}.`, 'error');return;}
+      // {reply, prompt}: the reply plus the full prompt the site sent to its AI (kept for Copy prompt).
+      let reply = text,prompt = '';
+      if (json) {try {const j = JSON.parse(text);if (j && typeof j.reply === 'string') {reply = j.reply;prompt = typeof j.prompt === 'string' ? j.prompt : '';}} catch (e) {/* the text as it came */}}
       let res;
-      try {res = importAiSpecRef.current(text, 'deck', { quiet: true });} catch (e) {res = { ok: false, errors: [String(e && e.message || e)] };}
+      try {res = importAiSpecRef.current(reply, 'deck', { quiet: true, prompt });} catch (e) {res = { ok: false, errors: [String(e && e.message || e)] };}
       if (res && res.ok) showToast(`AI reply applied (${who}, ${Math.round((Date.now() - started) / 1000)} s) - see Dataset > AI responses.`, 'success');else
       showToast('The AI reply was not applied: ' + ((res && res.errors || []).slice(0, 2).join(' ') || 'unknown reason') + '.', 'error');
     })();
@@ -13908,8 +13918,8 @@ with the analysis defaults, this block wins.
     const depTxt = (name) => {const n = nodes.get(name);return n && n.preds.size ? `<br>After: ${[...n.preds].slice(0, 4).map(ganttEsc).join(', ')}${n.preds.size > 4 ? ` +${n.preds.size - 4} more` : ''}` : '';};
 
     // --- Folding: a folded summary task hides the tasks under it (it keeps its full span); a folded
-    // swimlane hides every row but its header. Links touching hidden tasks go too; the critical path
-    // stays computed on all of them.
+    // swimlane hides every row but its header. Links touching hidden tasks stay: they are drawn to the
+    // row that hides the task (see the connectors below); the critical path stays computed on all of them.
     const collapsed = new Set(parKey ? (chart.ganttCollapsed || []).map(String) : []);
     const underCount = (n) => (kidsOf.get(n) || []).reduce((s2, c) => s2 + (kidsOf.has(c) ? underCount(c) : 1), 0);
     const laneKey = keys.cat.includes(chart.ganttLanes) && chart.ganttLanes !== task && chart.ganttLanes !== parKey ? chart.ganttLanes : '';
@@ -13936,8 +13946,6 @@ with the analysis defaults, this block wins.
     if (collapsed.size || lanesFolded.size) {
       const hidden = (it) => {if (lanesFolded.has(laneOf(it))) return true;let q = parentOf.get(it.name),k = 0;while (q && k < 50) {if (collapsed.has(q)) return true;q = parentOf.get(q);k++;}return false;};
       for (let j = items.length - 1; j >= 0; j--) if (hidden(items[j])) items.splice(j, 1);
-      const vis = new Set(items.map((it) => it.name));
-      for (let j = links.length - 1; j >= 0; j--) if (!vis.has(links[j].from) || !vis.has(links[j].to)) links.splice(j, 1);
     }
 
     // --- Styles (chart options menu / AI chart_pm; unset = automatic) ---
@@ -14130,9 +14138,30 @@ with the analysis defaults, this block wins.
     // (meta.cluesGantt.linkPaths, added by the layout): rows sit at category positions 0, 1, ...
     // and only a shape can run between two rows. Critical links in the critical-path color,
     // conflicting ones (the successor starts before its predecessor ends) dashed.
+    // A folded end is drawn on the row that hides it, as Planner does: its folded summary task (the
+    // nearest shown one above it), or its folded swimlane's header - at the hidden task's own dates. A
+    // link inside one fold is not drawn; several between the same two rows are drawn once, from the
+    // predecessor that ends last (it is the one that holds the successor). Conflicts count every link.
     let conflicts = 0;const linkPaths = [];
+    links.forEach(({ from, to }) => {if (nodes.get(to).S < nodes.get(from).E - TOL) conflicts++;});
     if (links.length && chart.ganttLinks !== false && chart.ganttLinks !== 'off') {
       const rowOf = new Map(order.map((k, j) => [k, j]));
+      const shownNames = new Set(items.map((it) => it.name));
+      const rowKey = (name) => {
+        if (shownNames.has(name)) return name;
+        const it = itemByName.get(name);
+        if (it && laneKey && lanesFolded.has(laneOf(it))) return LANE + laneOf(it);
+        let q = parentOf.get(name),k = 0;
+        while (q && k++ < 50) {if (shownNames.has(q)) return q;q = parentOf.get(q);}
+        return it && laneKey ? LANE + laneOf(it) : null;
+      };
+      const drawn = new Map();
+      links.forEach((l) => {
+        const ra = rowKey(l.from),rb = rowKey(l.to);
+        if (ra == null || rb == null || ra === rb) return;
+        const id = ra + '\u0000' + rb,cur = drawn.get(id);
+        if (!cur || nodes.get(l.from).E > nodes.get(cur.from).E) drawn.set(id, { from: l.from, to: l.to, ra, rb });
+      });
       const spanMs = Math.max(GANTT_DAY, Math.max(...items.map((it) => it.eMs)) - Math.min(...items.map((it) => it.sMs)));
       const rx = spanMs * 0.01,ry = 0.22,stub = spanMs * 0.022; // corner radius and loop stub: about 6 and 12 px on a usual plot
       // Path coordinates: dates as 'YYYY-MM-DD_HH:MM:SS' (Plotly's path format for date axes), rows as numbers.
@@ -14147,12 +14176,11 @@ with the analysis defaults, this block wins.
         return d + ' L' + at(...pts[pts.length - 1]);
       };
       const grp = { norm: { d: [], ax: [], ay: [] }, crit: { d: [], ax: [], ay: [] }, bad: { d: [], ax: [], ay: [] } };
-      links.forEach(({ from, to }) => {
+      drawn.forEach(({ from, to, ra, rb }) => {
         const a = nodes.get(from),b = nodes.get(to);
         const pE = a.E,sS = b.S;
         const bad = sS < pE - TOL;
-        if (bad) conflicts++;
-        const yA = rowOf.get(from),yB = rowOf.get(to);
+        const yA = rowOf.get(ra),yB = rowOf.get(rb);
         if (yA === undefined || yB === undefined || yA === yB) return;
         const crit = !bad && critOn && isCrit(from) && isCrit(to) && a.LF != null && Math.abs(a.LF - b.LS) <= TOL;
         const g = bad ? grp.bad : crit ? grp.crit : grp.norm;
@@ -14161,7 +14189,7 @@ with the analysis defaults, this block wins.
         g.d.push(rounded(sS - pE >= 2 * stub ?
         [[pE, yA], [xm, yA], [xm, yB], [sS, yB]] :
         [[pE, yA], [pE + stub, yA], [pE + stub, gapY], [sS - stub, gapY], [sS - stub, yB], [sS, yB]]));
-        g.ax.push(ganttIsoT(sS));g.ay.push(to);
+        g.ax.push(ganttIsoT(sS));g.ay.push(rb);
       });
       const lineCol = chart.ganttLinkColor || (darkMode ? 'rgba(203,213,225,0.6)' : 'rgba(71,85,105,0.55)');
       const linkW = Math.max(0.5, numOr(chart.ganttLinkWidth, 1.2));
@@ -14175,8 +14203,6 @@ with the analysis defaults, this block wins.
       add(grp.norm, lineCol, 'solid', linkW);
       add(grp.crit, critColor, 'solid', Math.max(linkW, critW * 0.8));
       add(grp.bad, critColor, 'dash', Math.max(linkW, 1.5));
-    } else if (links.length) {
-      links.forEach(({ from, to }) => {if (nodes.get(to).S < nodes.get(from).E - TOL) conflicts++;});
     }
     // Lane and summary names on the axis take their bracket colors once one is set (Swimlane / Summary
     // bar color); until then they keep the axis color like every other name.
@@ -16115,7 +16141,12 @@ with the analysis defaults, this block wins.
     )
     )
 
+    ),
+    timeCharts.some((c) => c && c.type === 'gantt' && c.presentHide !== true) && /*#__PURE__*/
+    React.createElement("button", { type: "button", onClick: () => setPresentTall((v) => !v), title: "Height free chart", "aria-label": "Height free chart", "aria-pressed": presentTall, className: `w-7 h-7 inline-flex items-center justify-center rounded-full transition-colors ${presentTall ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700/60'}` }, /*#__PURE__*/
+    React.createElement("svg", { className: "w-4 h-4", fill: "none", stroke: "currentColor", strokeWidth: "2", strokeLinecap: "round", strokeLinejoin: "round", viewBox: "0 0 24 24" }, /*#__PURE__*/React.createElement("path", { d: "M12 3v18M8 7l4-4 4 4M8 17l4 4 4-4" }))
     ), /*#__PURE__*/
+
     React.createElement("button", { type: "button", onClick: () => presentStep(-1), title: "Previous chart", "aria-label": "Previous chart", className: "w-7 h-7 inline-flex items-center justify-center rounded-full text-slate-500 dark:text-slate-300 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-slate-700/60 transition-colors" }, /*#__PURE__*/
     React.createElement("svg", { className: "w-4 h-4", fill: "currentColor", viewBox: "0 0 24 24" }, /*#__PURE__*/React.createElement("path", { d: "M16 5v14l-11-7z" }))
     ), /*#__PURE__*/
@@ -17281,7 +17312,8 @@ with the analysis defaults, this block wins.
     React.createElement("div", { className: "flex items-center gap-1.5 shrink-0" },
     (imp.steps || []).some((s) => !s.optional) && /*#__PURE__*/React.createElement("button", { onClick: () => startPlanRun(imp), disabled: !!planRun, title: "Apply every step in order and auto-snapshot each observe step", className: "text-[11px] px-2 py-1 rounded bg-violet-600 hover:bg-violet-700 text-white font-semibold disabled:opacity-50" }, "\u25B6 Run plan"),
     imp.spec && /*#__PURE__*/React.createElement("button", { onClick: () => rebuildImport(imp), title: "Rebuild this import's charts from its saved spec", className: "text-[11px] px-2 py-1 rounded border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 font-semibold hover:bg-blue-50 dark:hover:bg-blue-900/30" }, "Rebuild charts"),
-    imp.styleCount > 0 && imp.styleUndo && /*#__PURE__*/React.createElement("button", { onClick: () => revertStyling(imp), title: "Undo the appearance changes (colors, titles, aliases\u2026) this response applied. If newer styling responses were applied on top, they are unwound too (they can't remain without this one).", className: "text-[11px] px-2 py-1 rounded border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 font-semibold hover:bg-amber-50 dark:hover:bg-amber-900/30" }, "Revert styling (", imp.styleCount, ")"), /*#__PURE__*/
+    imp.styleCount > 0 && imp.styleUndo && /*#__PURE__*/React.createElement("button", { onClick: () => revertStyling(imp), title: "Undo the appearance changes (colors, titles, aliases\u2026) this response applied. If newer styling responses were applied on top, they are unwound too (they can't remain without this one).", className: "text-[11px] px-2 py-1 rounded border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 font-semibold hover:bg-amber-50 dark:hover:bg-amber-900/30" }, "Revert styling (", imp.styleCount, ")"),
+    imp.prompt && /*#__PURE__*/React.createElement("button", { onClick: async () => {const ok = await copyToClipboard(imp.prompt);showToast(ok ? `Prompt copied (${imp.prompt.length.toLocaleString()} characters): what the AI was sent for this response.` : 'The prompt could not be copied.', ok ? 'success' : 'error');}, title: "Copy the full prompt the AI was sent for this response: its instructions, the request, the Clues AI context and the data that came with it", className: "text-[11px] px-2 py-1 rounded border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-semibold hover:bg-slate-100 dark:hover:bg-slate-700" }, "Copy prompt"), /*#__PURE__*/
     React.createElement("button", { onClick: () => removeAiImport(imp), title: "Remove this AI response and its charts", className: "text-[11px] px-2 py-1 rounded border border-slate-300 dark:border-slate-600 text-slate-500 dark:text-slate-400 font-semibold hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400" }, "Remove")
     )
     ), /*#__PURE__*/
@@ -18836,6 +18868,7 @@ with the analysis defaults, this block wins.
       const groupBy = getChartGroupBy(chart);
 
       const timeChartType = chart.type === 'control' ? 'control' : chart.type === 'race' ? 'race' : chart.type === 'bump' ? 'bump' : chart.type === 'candlestick' ? 'candlestick' : chart.type === 'gantt' ? 'gantt' : chart.type === 'cfd' ? 'cfd' : 'timeseries';
+      let ganttRows = 0; // a Gantt's row count, for Height free chart
       const updChart = (patch) => setTimeCharts((cs) => cs.map((c) => c.id === chart.id ? { ...c, ...patch } : c));
       // Extra measures overlaid on a time series (Excel-style added series). Control charts stay
       // single-metric because their ±3σ limits describe one process, so this is time-series only.
@@ -19122,6 +19155,7 @@ with the analysis defaults, this block wins.
       if (timeChartType === 'gantt') {
         const gm = ((traces || []).find((t) => t && t.meta && t.meta.cluesGantt) || {}).meta;
         const g = gm ? gm.cluesGantt : null;
+        ganttRows = g ? g.order.length : 0;
         // Bars carry ms lengths on a date base: the axis type must be forced to date.
         dynLayout.barmode = 'overlay';
         dynLayout.xaxis = { ...dynLayout.xaxis, type: 'date', title: { ...((dynLayout.xaxis || {}).title || {}), text: '' } };
@@ -19269,7 +19303,7 @@ with the analysis defaults, this block wins.
         React.createElement(ChartCard, {
           defaultCollapsed: !!chartConfig.controlsCollapsed,
           key: chart.id, heightClass: heightCls, titleOptions: tOpts, typeStyleControls: renderPmStyle(chart, updChart), typeStyleTitle: PM_STYLE_TITLES[pmStyleKind(chart)], topControls: displayToggles, bottomControls: bControls,
-          onRemove: () => setTimeCharts(timeCharts.filter((c) => c.id !== chart.id)), panelHeight: deckOff ? chart.heightWork : chart.height != null && chart.height !== '' ? vScale(chart.height) : presoFitH, onResizeHeight: (px) => setTimeCharts((charts) => charts.map((c) => c.id === chart.id ? { ...c, [deckOff ? 'heightWork' : 'height']: deckOff ? px : Math.round(px / presoVScale) } : c)), panelWidth: hPx(chart.panelWidth), panelLeft: hPx(chart.panelLeft), onResizeWidth: (px) => setTimeCharts((charts) => charts.map((c) => c.id === chart.id ? { ...c, panelWidth: px } : c)), presoNote: chart.presoNote, presoNotePos: chart.presoNotePos, showPresoNote: !!chart.showPresoNote, onTogglePresoNote: (v) => setTimeCharts((charts) => charts.map((c) => c.id === chart.id ? { ...c, showPresoNote: v, ...(v && !(c.presoNote && String(c.presoNote).replace(/<[^>]*>/g, '').trim()) ? { presoNote: '' } : {}) } : c)), onUpdatePresoNote: (html) => setTimeCharts((charts) => charts.map((c) => c.id === chart.id ? { ...c, presoNote: html } : c)), onSetPresoNotePos: (p2) => setTimeCharts((charts) => charts.map((c) => c.id === chart.id ? { ...c, presoNotePos: p2 } : c)), presoNoteFont: chart.presoNoteFont, presoNoteSize: chart.presoNoteSize, presoNoteWidth: hPx(chart.presoNoteWidth), presoNoteGap: chart.presoNoteGap, presoNoteColor: chart.presoNoteColor, presoNoteAlign: chart.presoNoteAlign, presoNoteLeft: hPx(chart.presoNoteLeft), presoNoteX: hPx(chart.presoNoteX), presoNoteY: vScale(chart.presoNoteY), inPresent: chart.presentHide !== true, presentActive: presentMode, presentNotesOn: chartConfig.presentShowChartNotes === true, onStageNotesOn: () => setChartConfig((p) => ({ ...p, presentShowChartNotes: true })), canvasInk: chart.canvasInk || '', deckImage: chart.deckImage ? { ...chart.deckImage, width: hPx(chart.deckImage.width), x: hPx(chart.deckImage.x), y: vScale(chart.deckImage.y), src: (imageLib.find((im) => im.name === chart.deckImage.name) || {}).dataUri } : null, standardView: deckOff, canvasClear: !deckOff && chart.canvasBgOpacity != null && Number(chart.canvasBgOpacity) === 0, onAnnotations: ANNOT_TYPES.has(chart.type) ? () => setAnnoTarget({ family: 'time', id: chart.id }) : undefined, onDeckImage: () => setDeckImgTarget({ family: 'time', id: chart.id }), onPatchPreso: (patch2) => setTimeCharts((charts) => charts.map((c) => c.id === chart.id ? { ...c, ...unscalePresoPatch(patch2) } : c)),
+          onRemove: () => setTimeCharts(timeCharts.filter((c) => c.id !== chart.id)), panelHeight: tallH(deckOff ? chart.heightWork : chart.height != null && chart.height !== '' ? vScale(chart.height) : presoFitH, ganttRows), onResizeHeight: (px) => setTimeCharts((charts) => charts.map((c) => c.id === chart.id ? { ...c, [deckOff ? 'heightWork' : 'height']: deckOff ? px : Math.round(px / presoVScale) } : c)), panelWidth: hPx(chart.panelWidth), panelLeft: hPx(chart.panelLeft), onResizeWidth: (px) => setTimeCharts((charts) => charts.map((c) => c.id === chart.id ? { ...c, panelWidth: px } : c)), presoNote: chart.presoNote, presoNotePos: chart.presoNotePos, showPresoNote: !!chart.showPresoNote, onTogglePresoNote: (v) => setTimeCharts((charts) => charts.map((c) => c.id === chart.id ? { ...c, showPresoNote: v, ...(v && !(c.presoNote && String(c.presoNote).replace(/<[^>]*>/g, '').trim()) ? { presoNote: '' } : {}) } : c)), onUpdatePresoNote: (html) => setTimeCharts((charts) => charts.map((c) => c.id === chart.id ? { ...c, presoNote: html } : c)), onSetPresoNotePos: (p2) => setTimeCharts((charts) => charts.map((c) => c.id === chart.id ? { ...c, presoNotePos: p2 } : c)), presoNoteFont: chart.presoNoteFont, presoNoteSize: chart.presoNoteSize, presoNoteWidth: hPx(chart.presoNoteWidth), presoNoteGap: chart.presoNoteGap, presoNoteColor: chart.presoNoteColor, presoNoteAlign: chart.presoNoteAlign, presoNoteLeft: hPx(chart.presoNoteLeft), presoNoteX: hPx(chart.presoNoteX), presoNoteY: vScale(chart.presoNoteY), inPresent: chart.presentHide !== true, presentActive: presentMode, presentNotesOn: chartConfig.presentShowChartNotes === true, onStageNotesOn: () => setChartConfig((p) => ({ ...p, presentShowChartNotes: true })), canvasInk: chart.canvasInk || '', deckImage: chart.deckImage ? { ...chart.deckImage, width: hPx(chart.deckImage.width), x: hPx(chart.deckImage.x), y: vScale(chart.deckImage.y), src: (imageLib.find((im) => im.name === chart.deckImage.name) || {}).dataUri } : null, standardView: deckOff, canvasClear: !deckOff && chart.canvasBgOpacity != null && Number(chart.canvasBgOpacity) === 0, onAnnotations: ANNOT_TYPES.has(chart.type) ? () => setAnnoTarget({ family: 'time', id: chart.id }) : undefined, onDeckImage: () => setDeckImgTarget({ family: 'time', id: chart.id }), onPatchPreso: (patch2) => setTimeCharts((charts) => charts.map((c) => c.id === chart.id ? { ...c, ...unscalePresoPatch(patch2) } : c)),
           onImage: () => savePlotImage(`time-${chart.id}`, { format: 'png', filename: `Time_${chart.quantKey}`, scale: 3 }),
           onImageSvg: chartSvgExportable(chart) ? () => savePlotImage(`time-${chart.id}`, { format: 'svg', filename: `Time_${chart.quantKey}` }) : undefined,
           onSnapshot: () => exportChartSnapshot(`time-${chart.id}`, chart, 'time'),
