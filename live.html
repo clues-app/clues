@@ -3062,7 +3062,10 @@ const allPresoTextHasFormat = (el, key) => {
 };
 const sanitizePresoHtml = (html) => {
   if (!html) return '';
-  const root = document.createElement('div');
+  // Parse in an INERT document: in an element of the live page, markup like
+  // <img src=x onerror=...> already runs while it is being cleaned (images load
+  // even when not attached). An inert document loads and runs nothing.
+  const root = document.implementation.createHTMLDocument('').createElement('div');
   root.innerHTML = String(html);
   const clean = (node) => {
     [...node.childNodes].forEach((child) => {
@@ -3084,6 +3087,22 @@ const sanitizePresoHtml = (html) => {
   // means the note IS empty - store '' so :empty placeholders and emptiness
   // checks (Present hiding, the show-note flow) all agree.
   return (root.textContent || '').trim() ? root.innerHTML : '';
+};
+// Every stored rich text (presentation notes, the title slide, chart titles) is cleaned
+// again where it is SHOWN: a .clue file is data from anywhere - a deck opened from a link
+// included - and only edits and AI imports went through the cleaner before. Cached, as the
+// same few texts render on every pass.
+const safeHtmlCache = new Map();
+const safePresoHtml = (html) => {
+  const key = html == null ? '' : String(html);
+  if (!key) return '';
+  let out = safeHtmlCache.get(key);
+  if (out === undefined) {
+    out = sanitizePresoHtml(key);
+    if (safeHtmlCache.size > 500) safeHtmlCache.clear();
+    safeHtmlCache.set(key, out);
+  }
+  return out;
 };
 
 // The deck's opt-in TITLE SLIDE. The description is a rich-text block with the same
@@ -3309,7 +3328,7 @@ const DescTitleSlide = ({ layout, onPatch, title, date, text, imageUri, imageNam
     "data-placeholder": "Slide text - sourced from the Dataset description; edit and format it here for the slide...",
     className: `preso-note-content outline-none ${presentMode && !lay.size ? 'text-xl' : 'text-base'} leading-relaxed text-slate-700 dark:text-slate-300 whitespace-pre-wrap rounded px-1 -mx-1 focus:ring-1 focus:ring-blue-300 dark:focus:ring-blue-700 min-h-[2rem]`,
     style: { ...(lay.font ? { fontFamily: lay.font } : {}), ...(lay.size ? { fontSize: lay.size + 'px' } : {}), ...(lay.color ? { color: lay.color } : {}), ...(lay.align && lay.align !== 'left' ? { textAlign: lay.align } : {}) },
-    dangerouslySetInnerHTML: { __html: lay.html != null ? lay.html : escapeHtml(String(text || '')).replace(/\n/g, '<br>') } }
+    dangerouslySetInnerHTML: { __html: lay.html != null ? safePresoHtml(lay.html) : escapeHtml(String(text || '')).replace(/\n/g, '<br>') } }
   ),
   onPatch && /*#__PURE__*/
   React.createElement("div", { onMouseDown: (e) => startResize(e, 'text'), title: "Drag to size the text block - edges snap", className: "absolute top-0 -right-3 w-[7px] h-full cursor-ew-resize rounded z-10 opacity-0 hover:opacity-100 bg-blue-400/50 transition-opacity" })
@@ -4121,7 +4140,7 @@ const ChartCard = ({ chartId, titleOptions, topControls, bottomControls, onRemov
     "data-placeholder": "Presentation note - type here; select text and use the toolbar for bold or italic...",
     className: "preso-note-content outline-none text-[15px] leading-relaxed text-slate-700 dark:text-slate-300 min-h-[2rem] rounded px-1 -mx-1 focus:ring-1 focus:ring-blue-300 dark:focus:ring-blue-700",
     style: { ...(presoNoteFont ? { fontFamily: presoNoteFont } : {}), ...(presoNoteSize ? { fontSize: presoNoteSize + 'px' } : {}), ...(presoNoteColor ? { color: presoNoteColor } : {}), ...(presoNoteAlign && presoNoteAlign !== 'left' ? { textAlign: presoNoteAlign } : {}) },
-    dangerouslySetInnerHTML: { __html: presoNote || '' } }
+    dangerouslySetInnerHTML: { __html: safePresoHtml(presoNote) } }
   ),
   onPatchPreso && presoGutter && /*#__PURE__*/
   React.createElement(React.Fragment, null, /*#__PURE__*/
@@ -4200,7 +4219,7 @@ const EMBEDDED_AUTOLOAD = false;
 // alias shell is not functional drift. Single-line contract like the EMBEDDED_*
 // lines above - it is normalized out of computeShellHash, so stamping it never
 // changes this shell's own hash.
-const SHELL_HASH_ALIASES = ['199f9f61'];
+const SHELL_HASH_ALIASES = ['17d9412c'];
 // Set to a unique id by the Portable HTML export so each portable file keeps its
 // own autosave, isolated from the canonical app and from other portables (file://
 // pages otherwise share a single localStorage and would cross-contaminate).
@@ -11209,7 +11228,7 @@ with the analysis defaults, this block wins.
       React.createElement("div", {
         className: "text-center shrink-0 pb-1.5",
         style: { fontFamily: tt.family, fontSize: tt.size + 'px', color: facetInk && !(chart.titleColor && String(chart.titleColor).trim()) ? facetInk : tt.color, fontWeight: tt.bold ? 700 : 600, fontStyle: tt.italic ? 'italic' : 'normal', lineHeight: 1.25 },
-        dangerouslySetInnerHTML: { __html: String(mainTitle) + sub } }
+        dangerouslySetInnerHTML: { __html: safePresoHtml(String(mainTitle)) + sub } }
       ),
 
       legendItems.length > 0 && /*#__PURE__*/
