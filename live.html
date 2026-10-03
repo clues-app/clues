@@ -4219,7 +4219,7 @@ const EMBEDDED_AUTOLOAD = false;
 // alias shell is not functional drift. Single-line contract like the EMBEDDED_*
 // lines above - it is normalized out of computeShellHash, so stamping it never
 // changes this shell's own hash.
-const SHELL_HASH_ALIASES = ['e0bbe975'];
+const SHELL_HASH_ALIASES = ['1258401f'];
 // Set to a unique id by the Portable HTML export so each portable file keeps its
 // own autosave, isolated from the canonical app and from other portables (file://
 // pages otherwise share a single localStorage and would cross-contaminate).
@@ -9692,7 +9692,8 @@ with the analysis defaults, this block wins.
     pendingAiRequestRef.current = null;
     const link = linkedDeck();
     let target = null;
-    try {target = new URL(ask.url);} catch (e) {target = null;}
+    // A path ("/api/...") is completed from the deck link itself, so it is the deck's own site by construction.
+    try {target = link && link.ok ? new URL(ask.url, link.url) : null;} catch (e) {target = null;}
     const home = link && link.ok ? new URL(link.url).origin : '';
     if (!target || !home || target.origin !== home || !(target.protocol === 'https:' || target.protocol === 'http:' && /^(localhost|127\.0\.0\.1)$/.test(target.hostname))) {
       showToast('This deck asked for an AI reply from an address other than the one it came from. Nothing was sent.', 'error');
