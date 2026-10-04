@@ -4221,7 +4221,7 @@ const EMBEDDED_AUTOLOAD = false;
 // alias shell is not functional drift. Single-line contract like the EMBEDDED_*
 // lines above - it is normalized out of computeShellHash, so stamping it never
 // changes this shell's own hash.
-const SHELL_HASH_ALIASES = ['46ef7117'];
+const SHELL_HASH_ALIASES = ['ae659445'];
 // Set to a unique id by the Portable HTML export so each portable file keeps its
 // own autosave, isolated from the canonical app and from other portables (file://
 // pages otherwise share a single localStorage and would cross-contaminate).
@@ -7129,7 +7129,8 @@ const App = () => {
     const parent = keys.cat.find((k) => k !== task && k !== deps && /^(summary.?task|parent(.?task)?|summary)$/i.test(String(k).trim())) || '';
     // Several projects in one table: one swimlane per project.
     const lanes = keys.cat.find((k) => k !== task && k !== parent && /^(project|project.?name|programme|program)$/i.test(String(k).trim()) && (metadata.catOps[k] || []).filter((v) => v !== 'Unknown').length > 1) || '';
-    const warn = keys.cat.find((k) => k !== task && /^(warning|warnings|alert|alerts|issue|issues|planner.?differs)$/i.test(String(k).trim())) || '';
+    // Only names that can only mean a warning: an "Issue" or "Alert" column (issue trackers) holds other things.
+    const warn = keys.cat.find((k) => k !== task && /^(warning|warnings|planner.?differs)$/i.test(String(k).trim())) || '';
     return { dateKey: start, ganttEnd: end, ganttDuration: dur, ganttProgress: prog, ganttSnapshot: snapshot, ganttTask: task, groupBy: grp, ganttDeps: deps, ...(parent ? { ganttParent: parent } : {}), ...(lanes ? { ganttLanes: lanes } : {}), ...(warn ? { ganttWarn: warn } : {}), ...(baseStart ? { ganttBaseStart: baseStart, ganttBaseEnd: baseEnd } : {}) };
   };
   // Cumulative flow: a status column and the history table's snapshot date.

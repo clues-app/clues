@@ -4,7 +4,7 @@ Short notes on what's new. The full manual is the [User Guide](USER_GUIDE.md).
 
 ## 2026-10-04
 
-- **Gantt warning marks.** A new Gantt setting, **Warning column** (⋮ > Gantt style > Layout): every task with a value in that column gets an amber **!** just after its bar (after its label, when bars carry one); hovering the **!** shows the value. A task hidden in a folded summary task or swimlane puts its mark on the folded row, which lists the tasks inside. The bars do not change: the mark only tells. A new Gantt picks a column named Warning, Alert, Issue or Planner differs by itself; the AI context names the column (`chart_pm` `warning`). Made for project apps whose plan and task list can disagree ("Planner differs").
+- **Gantt warning marks.** A new Gantt setting, **Warning column** (⋮ > Gantt style > Layout): every task with a value in that column gets an amber **!** just after its bar (after its label, when bars carry one); hovering the **!** shows the value. A task hidden in a folded summary task or swimlane puts its mark on the folded row, which lists the tasks inside. The bars do not change: the mark only tells. A new Gantt picks a column named Warning, Warnings or Planner differs by itself (no other column is ever used unless chosen); the AI context names the column (`chart_pm` `warning`). Made for project apps whose plan and task list can disagree ("Planner differs").
 
 ## 2026-10-03
 
