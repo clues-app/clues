@@ -4219,7 +4219,7 @@ const EMBEDDED_AUTOLOAD = false;
 // alias shell is not functional drift. Single-line contract like the EMBEDDED_*
 // lines above - it is normalized out of computeShellHash, so stamping it never
 // changes this shell's own hash.
-const SHELL_HASH_ALIASES = ['7cd732ab'];
+const SHELL_HASH_ALIASES = ['3c0eeee2'];
 // Set to a unique id by the Portable HTML export so each portable file keeps its
 // own autosave, isolated from the canonical app and from other portables (file://
 // pages otherwise share a single localStorage and would cross-contaminate).
@@ -5322,7 +5322,7 @@ const App = () => {
   const [masterSeriesStyle, setMasterSeriesStyle] = useState({}); // the apply-to-all row's last-touched values (display only)
   const [notePopover, setNotePopover] = useState(null); // {family, chartId, noteId, cx, cy} - the click-a-note editor
   const [presentExportOpen, setPresentExportOpen] = useState(false); // the Present-bar Export menu
-  const [presentTall, setPresentTall] = useState(false); // Present bar: Height free chart (Gantt rows at a readable height)
+  const [presentTall, setPresentTall] = useState(false); // Present bar: Height free chart (Gantt rows at a readable height); saved in the session
   const [seriesTheme, setSeriesTheme] = useState(loadSavedTheme);
   // The theme is PER-SESSION: editing it changes only this session (it saves/reloads with the .clue).
   // Your GLOBAL "house style" (localStorage) is written ONLY by the explicit "Set as my default" button
@@ -5561,7 +5561,7 @@ const App = () => {
   // stored, the same deck refits whatever screen it opens on. Dragging a height
   // stores an explicit value and opts that chart out.
   const presoFitH = Math.max(320, (Number(bandH) > 300 ? Number(bandH) : 900) - (presentMode ? 150 : 132));
-  // Height free chart (Present bar, off by default; not saved): a Gantt takes the height its rows need - about
+  // Height free chart (Present bar, off by default; saved in the session as presentTall): a Gantt takes the height its rows need - about
   // 26 px a row, so fitted names reach their 14 px - even past the screen; the page scrolls. Never shorter.
   const tallH = (h, rows) => presentMode && presentTall && rows > 0 ? Math.max(typeof h === 'number' ? h : presoFitH, rows * 26 + 170) : h;
   // Horizontal counterpart: DRAGGED (px) widths and offsets scale by the design-width
@@ -6079,6 +6079,7 @@ const App = () => {
     }
     setDatasetDate(state.datasetDate || EMBEDDED_WORKSPACE_DATE || APP_VERSION);
     setDatasetDescription(state.datasetDescription || '');
+    setPresentTall(state.presentTall === true); // Height free chart, saved with the session (a deck opens as it was saved)
     // Migrate a legacy single-signature block to a chain of one (v1 semantics kept).
     setAudit(state.audit && typeof state.audit === 'object' ?
     Array.isArray(state.audit.chain) ? state.audit : state.audit.dataSignature ? { chain: [state.audit] } : null :
@@ -6477,7 +6478,7 @@ const App = () => {
         const state = {
           version: 41, appVersion: APP_VERSION, appHash: computeShellHash(), datasetDate, datasetDescription, descOpen, descHeight, descSlideOn, descSlideImage, descSlideLayout, audit,
           activeTab, sidebarTab, sidebarWidth, sidebarVisible, sidebarGraphHeight, accordionState, darkMode, showEmptyFamilies,
-          rawCsvData, originalRawCsvData, columnOverrides, fileName, sourceFingerprint, filters, colorBy, seriesConfig, seriesTheme, fieldStyleConfig, chartConfig, presentMode, presentMode,
+          rawCsvData, originalRawCsvData, columnOverrides, fileName, sourceFingerprint, filters, colorBy, seriesConfig, seriesTheme, fieldStyleConfig, chartConfig, presentMode, presentTall,
           showTrendlines, showTrendFormula, relCharts, distCharts, compCharts, timeCharts,
           chartNotes, showNotes, quantAliases, catAliases, fieldFormats, rowEdits, lensLog, imageLib, connected, compacted, sourceEditMode, showEditedRowsOnly, aiImports, unpivot, unpivotShelf, lastSessionSaveName,
           sourceSearch, sourceSortColumn, sourceSortDirection, sourceRowScope, sourceVisibleLimit,
@@ -6488,7 +6489,7 @@ const App = () => {
       } catch (err) {console.warn('Autosave skipped: Exceeds quota.', err);}
     }, 1500);
     return () => clearTimeout(saveTimer);
-  }, [datasetDate, datasetDescription, descOpen, descHeight, descSlideOn, descSlideImage, descSlideLayout, audit, activeTab, sidebarTab, sidebarWidth, sidebarVisible, sidebarGraphHeight, accordionState, darkMode, showEmptyFamilies, rawCsvData, originalRawCsvData, columnOverrides, fileName, sourceFingerprint, filters, colorBy, seriesConfig, seriesTheme, fieldStyleConfig, chartConfig, showTrendlines, showTrendFormula, relCharts, distCharts, compCharts, timeCharts, chartNotes, showNotes, quantAliases, catAliases, fieldFormats, rowEdits, lensLog, imageLib, connected, compacted, sourceEditMode, showEditedRowsOnly, sourceSearch, sourceSortColumn, sourceSortDirection, sourceRowScope, sourceVisibleLimit, selectedRowIds, currentSelectionFilter, selectionGroups, activeSelectionGroupId, activeSelectionMode, activeSelectionRules, lastSelectionSource, aiImports, autosaveTooBig, unpivot, unpivotShelf, lastSessionSaveName]);
+  }, [datasetDate, datasetDescription, descOpen, descHeight, descSlideOn, descSlideImage, descSlideLayout, audit, activeTab, sidebarTab, sidebarWidth, sidebarVisible, sidebarGraphHeight, accordionState, darkMode, showEmptyFamilies, rawCsvData, originalRawCsvData, columnOverrides, fileName, sourceFingerprint, filters, colorBy, seriesConfig, seriesTheme, fieldStyleConfig, chartConfig, showTrendlines, showTrendFormula, relCharts, distCharts, compCharts, timeCharts, chartNotes, showNotes, quantAliases, catAliases, fieldFormats, rowEdits, lensLog, imageLib, connected, compacted, sourceEditMode, showEditedRowsOnly, sourceSearch, sourceSortColumn, sourceSortDirection, sourceRowScope, sourceVisibleLimit, selectedRowIds, currentSelectionFilter, selectionGroups, activeSelectionGroupId, activeSelectionMode, activeSelectionRules, lastSelectionSource, aiImports, autosaveTooBig, unpivot, unpivotShelf, lastSessionSaveName, presentTall]);
 
   // Apply dark mode class to document body to enable tailwind 'dark:' classes
   useEffect(() => {
@@ -6804,7 +6805,7 @@ const App = () => {
     return {
       version: 41, appVersion: APP_VERSION, appHash: computeShellHash(), datasetDate, datasetDescription, descOpen, descHeight, descSlideOn, descSlideImage, descSlideLayout, audit,
       _summary: summary, activeTab, sidebarTab, sidebarWidth, sidebarVisible, sidebarGraphHeight, accordionState, darkMode, showEmptyFamilies,
-      rawCsvData, originalRawCsvData, columnOverrides, fileName, sourceFingerprint, filters, colorBy, seriesConfig, seriesTheme, fieldStyleConfig, chartConfig: chartConfigOut, presentMode,
+      rawCsvData, originalRawCsvData, columnOverrides, fileName, sourceFingerprint, filters, colorBy, seriesConfig, seriesTheme, fieldStyleConfig, chartConfig: chartConfigOut, presentMode, presentTall,
       showTrendlines, showTrendFormula, relCharts, distCharts, compCharts, timeCharts,
       chartNotes, showNotes, quantAliases, catAliases, fieldFormats, rowEdits, lensLog, imageLib, connected, compacted, sourceEditMode, showEditedRowsOnly, aiImports, unpivot, unpivotShelf, lastSessionSaveName,
       sourceSearch, sourceSortColumn, sourceSortDirection, sourceRowScope, sourceVisibleLimit,
