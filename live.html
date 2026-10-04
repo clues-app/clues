@@ -1257,6 +1257,8 @@ const PM_STYLE_PARAMS = {
   critical_color: { f: 'ganttCritColor', t: 'color', def: '#b91c1c', kinds: ['gantt'], group: 'Critical path & arrows', label: 'Critical path color', show: (c) => !!c.ganttDeps },
   critical_width: { f: 'ganttCritWidth', t: 'num', min: 0.5, max: 8, def: 2.5, kinds: ['gantt'], group: 'Critical path & arrows', label: 'Critical path thickness (px)', show: (c) => !!c.ganttDeps },
   link_color: { f: 'ganttLinkColor', t: 'color', def: '#64748b', kinds: ['gantt'], group: 'Critical path & arrows', label: 'Arrow color', show: (c) => !!c.ganttDeps },
+  conflict_color: { f: 'ganttConflictColor', t: 'color', kinds: ['gantt'], group: 'Critical path & arrows', label: 'Conflict arrow color (successor starts before its predecessor ends)', auto: 'critical path color', show: (c) => !!c.ganttDeps },
+  conflict_dash: { f: 'ganttConflictDash', t: 'enum', vals: PM_DASHES, names: PM_DASH_NAMES, kinds: ['gantt'], group: 'Critical path & arrows', label: 'Conflict arrow style', show: (c) => !!c.ganttDeps },
   link_width: { f: 'ganttLinkWidth', t: 'num', min: 0.5, max: 6, def: 1.2, kinds: ['gantt'], group: 'Critical path & arrows', label: 'Arrow thickness (px)', show: (c) => !!c.ganttDeps },
   arrow_size: { f: 'ganttArrowSize', t: 'num', min: 0, max: 20, def: 8, kinds: ['gantt'], group: 'Critical path & arrows', label: 'Arrowhead size (px, 0 = none)', show: (c) => !!c.ganttDeps },
   today_at: { f: 'ganttTodayAt', t: 'enum', vals: ['today', 'asof', 'date'], names: ['Today', 'The As-of snapshot date', 'A status date I choose'], kinds: ['gantt'], group: 'Date line', label: 'Draw it at' },
@@ -4221,7 +4223,7 @@ const EMBEDDED_AUTOLOAD = false;
 // alias shell is not functional drift. Single-line contract like the EMBEDDED_*
 // lines above - it is normalized out of computeShellHash, so stamping it never
 // changes this shell's own hash.
-const SHELL_HASH_ALIASES = ['ae659445'];
+const SHELL_HASH_ALIASES = ['2e94e342'];
 // Set to a unique id by the Portable HTML export so each portable file keeps its
 // own autosave, isolated from the canonical app and from other portables (file://
 // pages otherwise share a single localStorage and would cross-contaminate).
@@ -14210,7 +14212,8 @@ with the analysis defaults, this block wins.
       };
       add(grp.norm, lineCol, 'solid', linkW);
       add(grp.crit, critColor, 'solid', Math.max(linkW, critW * 0.8));
-      add(grp.bad, critColor, 'dash', Math.max(linkW, 1.5));
+      // Conflicts: their own color and line style once set (default: the critical-path color, dashed, as before).
+      add(grp.bad, chart.ganttConflictColor || critColor, PM_DASHES.includes(chart.ganttConflictDash) ? chart.ganttConflictDash : 'dash', Math.max(linkW, 1.5));
     }
     // Lane and summary names on the axis take their bracket colors once one is set (Swimlane / Summary
     // bar color); until then they keep the axis color like every other name.
@@ -19246,7 +19249,7 @@ with the analysis defaults, this block wins.
           if (g.cycle) dn.push(`Dependency loop (${g.cycle.join(', ')}) - no critical path`);else
           if (g.critOn) dn.push(`Outlined: the critical path, ${g.critCount} task${g.critCount === 1 ? '' : 's'} with no slack on the plan's own dates`);else
           if (!g.links) dn.push(`No dependencies found in ${getCatAlias(chart.ganttDeps)}`);
-          if (g.conflicts) dn.push(`${g.conflicts} successor${g.conflicts === 1 ? ' starts' : 's start'} before ${g.conflicts === 1 ? 'its predecessor ends' : 'their predecessors end'} (dashed)`);
+          if (g.conflicts) dn.push(`${g.conflicts} successor${g.conflicts === 1 ? ' starts' : 's start'} before ${g.conflicts === 1 ? 'its predecessor ends' : 'their predecessors end'} (${(PM_DASH_NAMES[PM_DASHES.indexOf(PM_DASHES.includes(chart.ganttConflictDash) ? chart.ganttConflictDash : 'dash')] || 'Dashed').toLowerCase()} arrows)`);
           if (g.unmatched) dn.push(`${g.unmatched} predecessor name${g.unmatched === 1 ? '' : 's'} not found among the tasks shown`);
           if (dn.length) gNotes.push(dn.join(' · '));
         }
