@@ -1045,6 +1045,7 @@ const CLUES_AI_REGISTRY = {
       depends: { accepts: ['categorical'], required: false, internal: 'ganttDeps' },
       lanes: { accepts: ['categorical'], required: false, internal: 'ganttLanes' },
       summary: { accepts: ['categorical'], required: false, internal: 'ganttParent' },
+      warning: { accepts: ['categorical'], required: false, internal: 'ganttWarn' },
       baseline_start: { accepts: ['temporal'], required: false, internal: 'ganttBaseStart' },
       baseline_end: { accepts: ['temporal'], required: false, internal: 'ganttBaseEnd' }
     }, options: {
@@ -1267,6 +1268,7 @@ const PM_STYLE_PARAMS = {
   folded_lanes: { f: 'ganttLanesCollapsed', t: 'list', kinds: ['gantt'], group: 'Layout', label: 'Folded swimlanes', structural: true, show: (c) => !!c.ganttLanes },
   lane_color: { f: 'ganttLaneColor', t: 'color', kinds: ['gantt'], group: 'Layout', label: 'Swimlane bar color', auto: 'summary bar color', show: (c) => !!c.ganttLanes },
   fit_labels: { f: 'ganttFitLabels', t: 'bool', kinds: ['gantt'], group: 'Layout', label: 'Fit task names to the rows (6-14 px)' },
+  warning: { f: 'ganttWarn', t: 'catcol', kinds: ['gantt'], group: 'Layout', label: 'Warning column (a ! with its text on tasks that have one)', structural: true },
   summary: { f: 'ganttParent', t: 'catcol', kinds: ['gantt'], group: 'Summary tasks', label: 'Summary task column', structural: true },
   summary_color: { f: 'ganttSumColor', t: 'color', kinds: ['gantt'], group: 'Summary tasks', label: 'Summary bar color', auto: 'text color', show: (c) => !!c.ganttParent },
   folded: { f: 'ganttCollapsed', t: 'list', kinds: ['gantt'], group: 'Summary tasks', label: 'Folded summary tasks', structural: true, show: (c) => !!c.ganttParent },
@@ -4219,7 +4221,7 @@ const EMBEDDED_AUTOLOAD = false;
 // alias shell is not functional drift. Single-line contract like the EMBEDDED_*
 // lines above - it is normalized out of computeShellHash, so stamping it never
 // changes this shell's own hash.
-const SHELL_HASH_ALIASES = ['3c0eeee2'];
+const SHELL_HASH_ALIASES = ['46ef7117'];
 // Set to a unique id by the Portable HTML export so each portable file keeps its
 // own autosave, isolated from the canonical app and from other portables (file://
 // pages otherwise share a single localStorage and would cross-contaminate).
@@ -4227,7 +4229,7 @@ const EMBEDDED_EXPORT_ID = '';
 const AUTOSAVE_KEY = EMBEDDED_EXPORT_ID ? 'analyzer_autosave_' + EMBEDDED_EXPORT_ID : 'analyzer_autosave';
 // Shell-app release date, used as the "dataset date" for the built-in showcase and
 // saved into every workspace. Bump this when releasing a new build.
-const APP_VERSION = '2026-10-03';
+const APP_VERSION = '2026-10-04';
 // Stamped by the Portable HTML export with the date the portable was created. Falls
 // back to APP_VERSION (the showcase's effective date) in the canonical app.
 const EMBEDDED_WORKSPACE_DATE = '';
@@ -7127,7 +7129,8 @@ const App = () => {
     const parent = keys.cat.find((k) => k !== task && k !== deps && /^(summary.?task|parent(.?task)?|summary)$/i.test(String(k).trim())) || '';
     // Several projects in one table: one swimlane per project.
     const lanes = keys.cat.find((k) => k !== task && k !== parent && /^(project|project.?name|programme|program)$/i.test(String(k).trim()) && (metadata.catOps[k] || []).filter((v) => v !== 'Unknown').length > 1) || '';
-    return { dateKey: start, ganttEnd: end, ganttDuration: dur, ganttProgress: prog, ganttSnapshot: snapshot, ganttTask: task, groupBy: grp, ganttDeps: deps, ...(parent ? { ganttParent: parent } : {}), ...(lanes ? { ganttLanes: lanes } : {}), ...(baseStart ? { ganttBaseStart: baseStart, ganttBaseEnd: baseEnd } : {}) };
+    const warn = keys.cat.find((k) => k !== task && /^(warning|warnings|alert|alerts|issue|issues|planner.?differs)$/i.test(String(k).trim())) || '';
+    return { dateKey: start, ganttEnd: end, ganttDuration: dur, ganttProgress: prog, ganttSnapshot: snapshot, ganttTask: task, groupBy: grp, ganttDeps: deps, ...(parent ? { ganttParent: parent } : {}), ...(lanes ? { ganttLanes: lanes } : {}), ...(warn ? { ganttWarn: warn } : {}), ...(baseStart ? { ganttBaseStart: baseStart, ganttBaseEnd: baseEnd } : {}) };
   };
   // Cumulative flow: a status column and the history table's snapshot date.
   const guessCfd = () => {
@@ -7749,6 +7752,7 @@ How to change it: the X:, Y:, and Size: dropdowns in the chart header; recolor w
     if (c.type === 'radar') {const sp = (c.dimensions && c.dimensions.length ? c.dimensions : keys.quant).filter((k) => keys.quant.includes(k));p.push(`spokes=${sp.join('/')} stat=${c.agg === 'median' ? 'median' : 'mean'} scale=${c.radarScale || 'auto'}`);}
     if (c.type === 'pareto') p.push(`category=${c.groupBy || '?'} value=${keys.quant.includes(c.paretoValue) ? `sum of ${c.paretoValue}` : 'row count'}`);
     if (c.type === 'risk') p.push(`likelihood=${c.cat1 || '?'} impact=${c.cat2 || '?'}${c.riskLabel ? ` label=${c.riskLabel}` : ''}`);
+    if (c.type === 'gantt' && c.ganttWarn) p.push(`warning=${c.ganttWarn} (a ! after each task with a value; hover shows it)`);
     if (c.type === 'gantt') p.push(`task=${c.ganttTask || '?'} start=${c.dateKey || '?'} ${c.ganttEnd ? `end=${c.ganttEnd}` : c.ganttDuration ? `duration_days=${c.ganttDuration}` : '(all milestones: no end or duration)'}${c.ganttProgress ? ` progress=${c.ganttProgress}` : ''}${c.ganttSnapshot ? ` snapshot=${c.ganttSnapshot} (latest snapshot shown)` : ''}${c.ganttToday === false ? ' today_line=off' : ''}${c.ganttSort === 'data' ? ' order=data' : ''}${c.ganttDeps ? ` depends=${c.ganttDeps} critical=${c.ganttCritical === false || c.ganttCritical === 'off' ? 'off' : 'on'} links=${c.ganttLinks === false || c.ganttLinks === 'off' ? 'off' : 'on'}` : ''}${c.ganttParent ? ` summary=${c.ganttParent}${c.ganttSumColor ? ` summary_color=${c.ganttSumColor}` : ''}${(c.ganttCollapsed || []).length ? ` folded=[${c.ganttCollapsed.slice(0, 8).join('; ')}${c.ganttCollapsed.length > 8 ? `; +${c.ganttCollapsed.length - 8} more` : ''}]` : ''}` : ''}${c.ganttLanes ? ` swimlanes=${c.ganttLanes}${c.ganttLaneColor ? ` lane_color=${c.ganttLaneColor}` : ''}${(c.ganttLanesCollapsed || []).length ? ` folded_lanes=[${c.ganttLanesCollapsed.slice(0, 8).join('; ')}${c.ganttLanesCollapsed.length > 8 ? `; +${c.ganttLanesCollapsed.length - 8} more` : ''}]` : ''}` : ''}${c.ganttBaseStart ? ` baseline=${c.ganttBaseStart}${c.ganttBaseEnd ? `..${c.ganttBaseEnd}` : ''}` : ''}`);
     if (c.type === 'cfd') p.push(`status=${c.groupBy || '?'} value=${keys.quant.includes(c.cfdValue) ? `sum of ${c.cfdValue}` : 'row count'} (stacked per date)`);
     if (c.type === 'timeseries' && c.tsAgg) p.push(`per_date=${c.tsAgg}${c.tsFinishBy ? ` finish_by=${c.tsFinishBy} (ideal line)` : ''}${c.tsProject ? ` projected_finish=on (last ${c.tsProjectWindow || 4} periods)` : ''}`);
@@ -14038,6 +14042,7 @@ with the analysis defaults, this block wins.
         name: 'Swimlanes', showlegend: false, marker: { symbol: 'line-ns', size: 24, color: laneColor, line: { width: 3, color: laneColor } },
         customdata: lns.flatMap((ln) => {const c = laneRow(ln);return [c, c];}), hovertemplate: bracketTip });
     }
+    const labelText = new Map(); // bar label per task, so a warning mark sits after it
     getCategoryValues(src, groupBy).forEach((cat) => {
       const st = getTraceStyle(cat, groupBy);
       const inCat = new Set(getRowsForCategory(src, groupBy, cat));
@@ -14056,6 +14061,7 @@ with the analysis defaults, this block wins.
         if (labelMode === 'group') return st.name;
         return '';
       };
+      if (labelMode) mine.forEach((it) => labelText.set(it, labelOf(it)));
       const textOpts = labelMode ? { textposition: 'outside', constraintext: 'none', cliponaxis: false, textfont: { size: labelSize, color: ink, family: chartConfig.fontFamily } } : {};
       const grpLine = gAlias ? `<br>${gAlias}: %{fullData.name}` : '';
       const showLeg = groupBy !== 'overall';
@@ -14143,19 +14149,19 @@ with the analysis defaults, this block wins.
     // nearest shown one above it), or its folded swimlane's header - at the hidden task's own dates. A
     // link inside one fold is not drawn; several between the same two rows are drawn once, from the
     // predecessor that ends last (it is the one that holds the successor). Conflicts count every link.
+    const shownNames = new Set(items.map((it) => it.name));
+    const rowKey = (name) => {
+      if (shownNames.has(name)) return name;
+      const it = itemByName.get(name);
+      if (it && laneKey && lanesFolded.has(laneOf(it))) return LANE + laneOf(it);
+      let q = parentOf.get(name),k = 0;
+      while (q && k++ < 50) {if (shownNames.has(q)) return q;q = parentOf.get(q);}
+      return it && laneKey ? LANE + laneOf(it) : null;
+    };
     let conflicts = 0;const linkPaths = [];
     links.forEach(({ from, to }) => {if (nodes.get(to).S < nodes.get(from).E - TOL) conflicts++;});
     if (links.length && chart.ganttLinks !== false && chart.ganttLinks !== 'off') {
       const rowOf = new Map(order.map((k, j) => [k, j]));
-      const shownNames = new Set(items.map((it) => it.name));
-      const rowKey = (name) => {
-        if (shownNames.has(name)) return name;
-        const it = itemByName.get(name);
-        if (it && laneKey && lanesFolded.has(laneOf(it))) return LANE + laneOf(it);
-        let q = parentOf.get(name),k = 0;
-        while (q && k++ < 50) {if (shownNames.has(q)) return q;q = parentOf.get(q);}
-        return it && laneKey ? LANE + laneOf(it) : null;
-      };
       const drawn = new Map();
       links.forEach((l) => {
         const ra = rowKey(l.from),rb = rowKey(l.to);
@@ -14215,9 +14221,35 @@ with the analysis defaults, this block wins.
       if (capSum && sumNames.has(k)) return `<span style="color:${capSum}">${l}</span>`;
       return l;
     });
+    // Warning marks (chart.ganttWarn, for example "Planner differs" from a project app): a "!" just after the bar
+    // (and after its label) of every task with a value in that column; hovering shows the value. A task hidden
+    // in a fold marks the folded row, which lists the tasks inside. The bars do not change: the mark only tells.
+    const warnKey = keys.cat.includes(chart.ganttWarn) && chart.ganttWarn !== task ? chart.ganttWarn : '';
+    const warnings = [];
+    if (warnKey) {
+      const warnOf = (d) => {const v = d ? d[warnKey] : null;return v === null || v === undefined || v === 'Unknown' || String(v).trim() === '' ? '' : String(v).trim();};
+      const wrap = (s) => {const out = [];let line = '';String(s).split(/\s+/).forEach((w) => {if (line && (line + ' ' + w).length > 64) {out.push(line);line = w;} else line = line ? line + ' ' + w : w;});if (line) out.push(line);return out.map(ganttEsc).join('<br>');};
+      const shownItem = new Map(items.map((it) => [it.name, it])),inOrder = new Set(order),marks = new Map();
+      itemByName.forEach((it, name) => {
+        const text = warnOf(it.d);if (!text) return;
+        const row = rowKey(name);if (row == null || !inOrder.has(row)) return;
+        const m = marks.get(row) || { own: '', inside: [] };
+        if (row === name) m.own = wrap(text);else m.inside.push(`<b>${ganttEsc(name)}</b>: ${wrap(text)}`);
+        marks.set(row, m);
+      });
+      marks.forEach((m, row) => {
+        const it = shownItem.get(row),ln = lanes.find((l) => l.key === row);
+        const end = it ? it.eMs : ln ? ln.e : null;if (end == null) return;
+        const lbl = it ? String(labelText.get(it) || '') : '';
+        const n = m.inside.length;
+        const head = n ? `<b>${n} task${n === 1 ? '' : 's'} inside need${n === 1 ? 's' : ''} attention</b><br>` + m.inside.slice(0, 6).join('<br>') + (n > 6 ? `<br>+${n - 6} more` : '') : '';
+        warnings.push({ row, x: ganttIsoT(end), text: m.own + (m.own && head ? '<br><br>' : '') + head,
+          xshift: 5 + (lbl ? Math.round(lbl.length * labelSize * 0.6) + 4 : 0) + (it && it.dur === 0 ? Math.round(msSize / 2) : 0) });
+      });
+    }
     const lo = Math.min(...items.map((it) => it.sMs), ...[...baseOf.values()].map((b) => b.bsMs)),hi = Math.max(...items.map((it) => it.eMs), ...[...baseOf.values()].map((b) => b.beMs));
     const critCount = critOn ? [...nodes.keys()].filter(isCrit).length : 0;
-    traces[0].meta = { cluesGantt: { order, labels: shownLabels, lanes: lanes.map((l) => ({ name: l.name, first: l.first, last: l.last })), laned: !!laneKey, tree: !!parKey, linkPaths, foldable: [...lanes.map((l) => l.key), ...items.filter((it) => it.sum).map((it) => it.name)], baseline: baseOf.size > 0, lo, hi, skipped, asOf, snapKey, tasks: items.length ? seen.size : 0, deps: !!depKey, links: links.length, cpmOn, critOn, critCount, conflicts, unmatched, cycle } };
+    traces[0].meta = { cluesGantt: { order, labels: shownLabels, lanes: lanes.map((l) => ({ name: l.name, first: l.first, last: l.last })), laned: !!laneKey, tree: !!parKey, linkPaths, warnings, foldable: [...lanes.map((l) => l.key), ...items.filter((it) => it.sum).map((it) => it.name)], baseline: baseOf.size > 0, lo, hi, skipped, asOf, snapKey, tasks: items.length ? seen.size : 0, deps: !!depKey, links: links.length, cpmOn, critOn, critCount, conflicts, unmatched, cycle } };
     return traces;
   };
 
@@ -19202,6 +19234,7 @@ with the analysis defaults, this block wins.
           }
         }
         // Dependency arrows (buildGanttTraces): one path per style, above the bars.
+        if (g && g.warnings && g.warnings.length) dynLayout.annotations = [...(dynLayout.annotations || []), ...g.warnings.map((w) => ({ xref: 'x', yref: 'y', x: w.x, y: w.row, text: '<b>!</b>', showarrow: false, xanchor: 'left', yanchor: 'middle', xshift: w.xshift, font: { size: 11, color: '#1f2937', family: 'Arial, sans-serif' }, bgcolor: '#f59e0b', bordercolor: '#b45309', borderwidth: 1, borderpad: 2, hovertext: w.text, hoverlabel: { bgcolor: '#fff7ed', bordercolor: '#b45309', font: { color: '#1f2937', size: 12 }, align: 'left' } }))];
         if (g && g.linkPaths) g.linkPaths.forEach((lp) => gShapes.push({ type: 'path', xref: 'x', yref: 'y', path: lp.d, line: { color: lp.color, width: lp.width, dash: lp.dash }, layer: 'above' }));
         if (gShapes.length) dynLayout.shapes = [...(dynLayout.shapes || []), ...gShapes];
         const gNotes = [];
