@@ -4226,7 +4226,7 @@ const EMBEDDED_AUTOLOAD = false;
 // alias shell is not functional drift. Single-line contract like the EMBEDDED_*
 // lines above - it is normalized out of computeShellHash, so stamping it never
 // changes this shell's own hash.
-const SHELL_HASH_ALIASES = ['4a1f091e'];
+const SHELL_HASH_ALIASES = ['ae12a544'];
 // Set to a unique id by the Portable HTML export so each portable file keeps its
 // own autosave, isolated from the canonical app and from other portables (file://
 // pages otherwise share a single localStorage and would cross-contaminate).
@@ -4234,7 +4234,7 @@ const EMBEDDED_EXPORT_ID = '';
 const AUTOSAVE_KEY = EMBEDDED_EXPORT_ID ? 'analyzer_autosave_' + EMBEDDED_EXPORT_ID : 'analyzer_autosave';
 // Shell-app release date, used as the "dataset date" for the built-in showcase and
 // saved into every workspace. Bump this when releasing a new build.
-const APP_VERSION = '2026-10-04';
+const APP_VERSION = '2026-10-05';
 // Stamped by the Portable HTML export with the date the portable was created. Falls
 // back to APP_VERSION (the showcase's effective date) in the canonical app.
 const EMBEDDED_WORKSPACE_DATE = '';
@@ -13923,11 +13923,17 @@ with the analysis defaults, this block wins.
     const slackTxt = (name) => {
       if (!cpmOn) return '';
       const n = nodes.get(name);if (!n || n.TF == null) return '';
-      if (Math.abs(n.TF) <= TOL) return '<br><b>Critical path</b>: no slack';
+      if (Math.abs(n.TF) <= TOL) {
+        // Say why (user, 2026-10-05: "no slack" next to "After: 4.3" read as "no slack after 4.3"): nothing
+        // after it, so it ends when the plan ends, or the task after it that leaves no room.
+        const next = [...n.succs].map((s) => nodes.get(s)).filter((s) => s && s.LS != null && Math.abs(s.LS - n.LF) <= TOL).map((s) => s.name);
+        const why = !n.succs.size ? 'it ends when the plan ends' : next.length ? `next on the path: ${next.slice(0, 2).map(ganttEsc).join(', ')}${next.length > 2 ? ` +${next.length - 2} more` : ''}` : 'the tasks after it leave no room';
+        return `<br><b>Critical path</b>: no slack, a delay moves the end of the plan (${why})`;
+      }
       const dd = Math.round(n.TF / GANTT_DAY * 10) / 10;
       return dd < 0 ? `<br><b>Slack: ${dd} days</b> (the plan's own dates conflict)` : `<br>Slack: ${dd} day${dd === 1 ? '' : 's'}`;
     };
-    const depTxt = (name) => {const n = nodes.get(name);return n && n.preds.size ? `<br>After: ${[...n.preds].slice(0, 4).map(ganttEsc).join(', ')}${n.preds.size > 4 ? ` +${n.preds.size - 4} more` : ''}` : '';};
+    const depTxt = (name) => {const n = nodes.get(name);return n && n.preds.size ? `<br>Waits for: ${[...n.preds].slice(0, 4).map(ganttEsc).join(', ')}${n.preds.size > 4 ? ` +${n.preds.size - 4} more` : ''}` : '';};
 
     // --- Folding: a folded summary task hides the tasks under it (it keeps its full span); a folded
     // swimlane hides every row but its header. Links touching hidden tasks stay: they are drawn to the

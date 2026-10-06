@@ -2,6 +2,10 @@
 
 Short notes on what's new. The full manual is the [User Guide](USER_GUIDE.md).
 
+## 2026-10-05
+
+- **Gantt: the critical path says why.** A critical task's hover read "Critical path: no slack" with "After: <task>" on the next line - easily read as "no slack after that task". It now reads "Critical path: no slack, a delay moves the end of the plan (next on the path: <task>)" - or "(it ends when the plan ends)" - and the predecessors line is "Waits for: <task>".
+
 ## 2026-10-04
 
 - **Gantt: a pattern for chosen values.** **⋮ > Gantt style > Bars > Pattern on bars whose color value is**: type one or more values of the column the bars are colored by, separated by commas (for example `Done`), and pick the **Pattern** (diagonal lines, crosshatch, dots, horizontal lines). Those bars, their finished part included, get the pattern on top of their color - a done task reads apart from one that is only 100 % complete. Empty: no pattern, as before. AI `chart_pm`: `pattern_values`, `pattern_shape`.
