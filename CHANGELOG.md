@@ -2,6 +2,14 @@
 
 Short notes on what's new. The full manual is the [User Guide](USER_GUIDE.md).
 
+## 2026-10-09
+
+- **Gantt: a critical path for each project.** With several projects in one Gantt (one swimlane each), only the project that ends last had a critical path: every other project had slack up to the end of the whole chart. **⋮ > Gantt style > Critical path & arrows > Critical path measured over** (shown when the Gantt has **Depends on** and **Swimlanes**): **The whole chart** (as before, the default), **Each swimlane** (each project alone: its own tasks and links, ending at its own finish; links to other swimlanes still draw but do not count), or **Linked swimlanes together** (swimlanes joined by links share one critical path ending at the finish of the last of them, a program; a swimlane linked to no other keeps its own). The hover of a last critical task says "it ends when its swimlane ends" or "when its linked swimlanes end", and the note under the chart says which measure is used. AI `chart_pm`: `critical_scope` (`""`, `"lane"`, `"linked"`).
+
+## 2026-10-07
+
+- **AI: Gantt bar labels can be switched off by name.** An AI asked for `"bar_labels": "none"` and the spec was rejected ("must be one of progress, dates, days, group"), although **Labels on bars > None** exists. `chart_pm` now takes `"none"` or `"off"` as well as `""` for no labels, and both the AI context and the rejection say so (`progress|dates|days|group, or "" for none`).
+
 ## 2026-10-05
 
 - **Gantt: the critical path says why.** A critical task's hover read "Critical path: no slack" with "After: <task>" on the next line - easily read as "no slack after that task". It now reads "Critical path: no slack, a delay moves the end of the plan (next on the path: <task>)" - or "(it ends when the plan ends)" - and the predecessors line is "Waits for: <task>".

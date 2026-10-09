@@ -1257,6 +1257,7 @@ const PM_STYLE_PARAMS = {
   milestone_size: { f: 'ganttMsSize', t: 'num', min: 6, max: 30, def: 14, kinds: ['gantt'], group: 'Milestones', label: 'Size (px)' },
   milestone_color: { f: 'ganttMsColor', t: 'color', kinds: ['gantt'], group: 'Milestones', label: 'Color', auto: 'series color' },
   critical_color: { f: 'ganttCritColor', t: 'color', def: '#b91c1c', kinds: ['gantt'], group: 'Critical path & arrows', label: 'Critical path color', show: (c) => !!c.ganttDeps },
+  critical_scope: { f: 'ganttCritScope', t: 'enum', vals: ['', 'lane', 'linked'], names: ['The whole chart', 'Each swimlane', 'Linked swimlanes together'], kinds: ['gantt'], group: 'Critical path & arrows', label: 'Critical path measured over', show: (c) => !!c.ganttDeps && !!c.ganttLanes },
   critical_width: { f: 'ganttCritWidth', t: 'num', min: 0.5, max: 8, def: 2.5, kinds: ['gantt'], group: 'Critical path & arrows', label: 'Critical path thickness (px)', show: (c) => !!c.ganttDeps },
   link_color: { f: 'ganttLinkColor', t: 'color', def: '#64748b', kinds: ['gantt'], group: 'Critical path & arrows', label: 'Arrow color', show: (c) => !!c.ganttDeps },
   conflict_color: { f: 'ganttConflictColor', t: 'color', kinds: ['gantt'], group: 'Critical path & arrows', label: 'Conflict arrow color (successor starts before its predecessor ends)', auto: 'critical path color', show: (c) => !!c.ganttDeps },
@@ -1311,7 +1312,12 @@ const pmStyleValue = (s, v, cols) => {
   if (v === '' || v === null || v === undefined) return { ok: true, value: undefined };
   if (s.t === 'color') return /^#[0-9a-fA-F]{6}$/.test(String(v)) ? { ok: true, value: String(v) } : { ok: false, why: 'a hex color like "#b91c1c"' };
   if (s.t === 'num') {const n = Number(v);if (!Number.isFinite(n)) return { ok: false, why: 'a number' };return { ok: true, value: Math.max(s.min ?? -Infinity, Math.min(s.max ?? Infinity, n)) };}
-  if (s.t === 'enum') return s.vals.includes(String(v)) ? { ok: true, value: String(v) === s.vals[0] ? undefined : String(v) } : { ok: false, why: `one of ${s.vals.filter(Boolean).join(', ')}` };
+  if (s.t === 'enum') {
+    const noneName = s.vals[0] === '' && /^none$/i.test(s.names && s.names[0] || 'none') ? s.names && s.names[0] || 'none' : '';
+    if (noneName && /^(none|off)$/i.test(String(v))) return { ok: true, value: undefined };
+    return s.vals.includes(String(v)) ? { ok: true, value: String(v) === s.vals[0] ? undefined : String(v) } :
+    { ok: false, why: `one of ${s.vals.filter(Boolean).join(', ')}${noneName ? `, or "" for ${noneName}` : ''}` };
+  }
   if (s.t === 'bool') {const b = v === true || v === 'on' || v === 'true' ? true : v === false || v === 'off' || v === 'false' ? false : null;if (b === null) return { ok: false, why: 'true or false' };return { ok: true, value: b === !!s.def ? undefined : b };}
   if (s.t === 'date') return /^\d{4}-\d{2}-\d{2}$/.test(String(v)) ? { ok: true, value: String(v) } : { ok: false, why: 'a date YYYY-MM-DD' };
   if (s.t === 'text') {const txt = (Array.isArray(v) ? v.join(', ') : String(v)).trim().slice(0, 300);return { ok: true, value: txt || undefined };}
@@ -1324,7 +1330,7 @@ const pmStyleValue = (s, v, cols) => {
   return { ok: false, why: 'a valid value' };
 };
 const pmStyleOpDesc = () => 'Style knobs for the PROJECT charts - Gantt, radar, and burnup/burndown (a time series with a per-date Values mode). Pass only what you change; "" returns a knob to automatic. Knobs: ' +
-Object.entries(PM_STYLE_PARAMS).map(([k, s]) => `"${k}" (${s.kinds.join('/')}: ${s.t === 'num' ? `number${s.min != null ? ` ${s.min}..${s.max}` : ''}` : s.t === 'enum' ? s.vals.filter(Boolean).join('|') : s.t === 'bool' ? 'true|false' : s.t === 'color' ? 'hex' : s.t === 'date' ? 'YYYY-MM-DD' : s.t === 'catcol' ? 'categorical column' : s.t === 'list' ? 'list of task names' : s.t === 'text' ? 'text' : 'date column'})`).join(', ') +
+Object.entries(PM_STYLE_PARAMS).map(([k, s]) => `"${k}" (${s.kinds.join('/')}: ${s.t === 'num' ? `number${s.min != null ? ` ${s.min}..${s.max}` : ''}` : s.t === 'enum' ? s.vals.filter(Boolean).join('|') + (s.vals[0] === '' ? `, or "" for ${(s.names && s.names[0] || 'none').toLowerCase()}` : '') : s.t === 'bool' ? 'true|false' : s.t === 'color' ? 'hex' : s.t === 'date' ? 'YYYY-MM-DD' : s.t === 'catcol' ? 'categorical column' : s.t === 'list' ? 'list of task names' : s.t === 'text' ? 'text' : 'date column'})`).join(', ') +
 '. border_width / border_color outline every task bar and milestone (the color defaults to the bar\'s own group color; critical tasks keep the critical-path outline); critical_* style the critical-path outline and links; today_at "asof" draws the date line at the As-of snapshot date; lanes groups rows into swimlanes, each headed by a bold row with a bracket bar across its span (a click folds the lane); folded_lanes lists the lane values whose rows are hidden ([] or "" shows all); ' +
 'summary names the column holding each task\'s summary (parent) task, by task name or ID (e.g. "Summary task" or "Parent"): each summary row then spans its tasks with a bold label and a thin bracket bar, its tasks listed under it, kept out of the status colors and the critical outline; with lanes too, the tree sits inside each swimlane (e.g. lanes = Project for several projects); summary_color colors the summary brackets (and the lane brackets unless lane_color is set); lane_color colors the swimlane brackets, e.g. one color for projects and another for their summary tasks (once set, these colors also color the lane and summary names on the axis); fit_labels true sizes the task names on the axis to the row height (6-14 px), so a crowded plan stays readable (default: the text color); ' +
 'folded lists the summary task names whose tasks are hidden (as a viewer clicking a summary bar does; [] or "" shows all) - names must be values of the Task column; baseline_start/end draw a thin planned-dates bar under each task; project draws a straight-line projected finish from the last project_window periods (a pace, not a forecast model).';
@@ -4226,7 +4232,7 @@ const EMBEDDED_AUTOLOAD = false;
 // alias shell is not functional drift. Single-line contract like the EMBEDDED_*
 // lines above - it is normalized out of computeShellHash, so stamping it never
 // changes this shell's own hash.
-const SHELL_HASH_ALIASES = ['ae12a544'];
+const SHELL_HASH_ALIASES = ['702975ec'];
 // Set to a unique id by the Portable HTML export so each portable file keeps its
 // own autosave, isolated from the canonical app and from other portables (file://
 // pages otherwise share a single localStorage and would cross-contaminate).
@@ -4234,7 +4240,7 @@ const EMBEDDED_EXPORT_ID = '';
 const AUTOSAVE_KEY = EMBEDDED_EXPORT_ID ? 'analyzer_autosave_' + EMBEDDED_EXPORT_ID : 'analyzer_autosave';
 // Shell-app release date, used as the "dataset date" for the built-in showcase and
 // saved into every workspace. Bump this when releasing a new build.
-const APP_VERSION = '2026-10-05';
+const APP_VERSION = '2026-10-09';
 // Stamped by the Portable HTML export with the date the portable was created. Falls
 // back to APP_VERSION (the showcase's effective date) in the canonical app.
 const EMBEDDED_WORKSPACE_DATE = '';
@@ -13885,6 +13891,8 @@ with the analysis defaults, this block wins.
       nodes.set(it.name, { name: it.name, S: it.sMs, E: it.eMs, preds: new Set(), succs: new Set() });
     });
     const links = [];let unmatched = 0;let cycle = null;let cpmOn = false;
+    const critScope = (chart.ganttCritScope === 'lane' || chart.ganttCritScope === 'linked') && keys.cat.includes(chart.ganttLanes) && chart.ganttLanes !== task && chart.ganttLanes !== parKey ? chart.ganttCritScope : '';
+    let endOfNode = null,sameLane = null;
     if (depKey) {
       const byLower = new Map();nodes.forEach((n, k) => byLower.set(k.trim().toLowerCase(), k));
       // Predecessor lists often cite row IDs (MS Project, Smartsheet) - accept an ID-like column too.
@@ -13908,9 +13916,25 @@ with the analysis defaults, this block wins.
       if (links.length) {
         cpmOn = true;
         const PF = Math.max(...[...nodes.values()].map((n) => n.E));
+        // Critical path measured over each swimlane, or each group of swimlanes joined by links (2026-10-09:
+        // several projects, one lane each, only the one ending last had a critical path). Each swimlane: its
+        // own tasks and links only, ending at its own finish (each project alone). Linked swimlanes: links
+        // across lanes count, and the group ends at the finish of its last lane (a program).
+        if (critScope) {
+          const laneOfNode = new Map();
+          items.forEach((it) => {if (!laneOfNode.has(it.name)) {const v = it.d[chart.ganttLanes];laneOfNode.set(it.name, v === null || v === undefined || String(v).trim() === '' || v === 'Unknown' ? '' : String(v));}});
+          const root = new Map();laneOfNode.forEach((l) => root.set(l, l));
+          const find = (l) => {while (root.get(l) !== l) l = root.get(l);return l;};
+          if (critScope === 'linked') links.forEach(({ from, to }) => {const a = find(laneOfNode.get(from)),b = find(laneOfNode.get(to));if (a !== b) root.set(a, b);});
+          const groupEnd = new Map();
+          nodes.forEach((n, k) => {const g = find(laneOfNode.get(k));groupEnd.set(g, Math.max(groupEnd.get(g) ?? -Infinity, n.E));});
+          endOfNode = (k) => groupEnd.get(find(laneOfNode.get(k)));
+          if (critScope === 'lane') sameLane = (a, b) => laneOfNode.get(a) === laneOfNode.get(b);
+        }
         for (let i = topo.length - 1; i >= 0; i--) {
           const n = nodes.get(topo[i]);
-          n.LF = n.succs.size ? Math.min(...[...n.succs].map((s2) => nodes.get(s2).LS)) : PF;
+          const after = sameLane ? [...n.succs].filter((s2) => sameLane(s2, topo[i])) : [...n.succs];
+          n.LF = after.length ? Math.min(...after.map((s2) => nodes.get(s2).LS)) : endOfNode ? endOfNode(topo[i]) : PF;
           n.LS = n.LF - (n.E - n.S);
           n.TF = n.LS - n.S;
         }
@@ -13927,7 +13951,7 @@ with the analysis defaults, this block wins.
         // Say why (user, 2026-10-05: "no slack" next to "After: 4.3" read as "no slack after 4.3"): nothing
         // after it, so it ends when the plan ends, or the task after it that leaves no room.
         const next = [...n.succs].map((s) => nodes.get(s)).filter((s) => s && s.LS != null && Math.abs(s.LS - n.LF) <= TOL).map((s) => s.name);
-        const why = !n.succs.size ? 'it ends when the plan ends' : next.length ? `next on the path: ${next.slice(0, 2).map(ganttEsc).join(', ')}${next.length > 2 ? ` +${next.length - 2} more` : ''}` : 'the tasks after it leave no room';
+        const why = !n.succs.size ? critScope === 'lane' ? 'it ends when its swimlane ends' : critScope === 'linked' ? 'it ends when its linked swimlanes end' : 'it ends when the plan ends' : next.length ? `next on the path: ${next.slice(0, 2).map(ganttEsc).join(', ')}${next.length > 2 ? ` +${next.length - 2} more` : ''}` : 'the tasks after it leave no room';
         return `<br><b>Critical path</b>: no slack, a delay moves the end of the plan (${why})`;
       }
       const dd = Math.round(n.TF / GANTT_DAY * 10) / 10;
@@ -14269,7 +14293,7 @@ with the analysis defaults, this block wins.
     }
     const lo = Math.min(...items.map((it) => it.sMs), ...[...baseOf.values()].map((b) => b.bsMs)),hi = Math.max(...items.map((it) => it.eMs), ...[...baseOf.values()].map((b) => b.beMs));
     const critCount = critOn ? [...nodes.keys()].filter(isCrit).length : 0;
-    traces[0].meta = { cluesGantt: { order, labels: shownLabels, lanes: lanes.map((l) => ({ name: l.name, first: l.first, last: l.last })), laned: !!laneKey, tree: !!parKey, linkPaths, warnings, foldable: [...lanes.map((l) => l.key), ...items.filter((it) => it.sum).map((it) => it.name)], baseline: baseOf.size > 0, lo, hi, skipped, asOf, snapKey, tasks: items.length ? seen.size : 0, deps: !!depKey, links: links.length, cpmOn, critOn, critCount, conflicts, unmatched, cycle } };
+    traces[0].meta = { cluesGantt: { order, labels: shownLabels, lanes: lanes.map((l) => ({ name: l.name, first: l.first, last: l.last })), laned: !!laneKey, tree: !!parKey, linkPaths, warnings, foldable: [...lanes.map((l) => l.key), ...items.filter((it) => it.sum).map((it) => it.name)], baseline: baseOf.size > 0, lo, hi, skipped, asOf, snapKey, tasks: items.length ? seen.size : 0, deps: !!depKey, links: links.length, cpmOn, critOn, critCount, critScope, conflicts, unmatched, cycle } };
     return traces;
   };
 
@@ -19263,7 +19287,7 @@ with the analysis defaults, this block wins.
         if (g && g.deps) {
           const dn = [];
           if (g.cycle) dn.push(`Dependency loop (${g.cycle.join(', ')}) - no critical path`);else
-          if (g.critOn) dn.push(`Outlined: the critical path, ${g.critCount} task${g.critCount === 1 ? '' : 's'} with no slack on the plan's own dates`);else
+          if (g.critOn) dn.push(`Outlined: the critical path${g.critScope === 'lane' ? ' of each swimlane' : g.critScope === 'linked' ? ' of each group of linked swimlanes' : ''}, ${g.critCount} task${g.critCount === 1 ? '' : 's'} with no slack on the plan's own dates`);else
           if (!g.links) dn.push(`No dependencies found in ${getCatAlias(chart.ganttDeps)}`);
           if (g.conflicts) dn.push(`${g.conflicts} successor${g.conflicts === 1 ? ' starts' : 's start'} before ${g.conflicts === 1 ? 'its predecessor ends' : 'their predecessors end'} (${(PM_DASH_NAMES[PM_DASHES.indexOf(PM_DASHES.includes(chart.ganttConflictDash) ? chart.ganttConflictDash : 'dash')] || 'Dashed').toLowerCase()} arrows)`);
           if (g.unmatched) dn.push(`${g.unmatched} predecessor name${g.unmatched === 1 ? '' : 's'} not found among the tasks shown`);
