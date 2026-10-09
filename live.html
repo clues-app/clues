@@ -1257,7 +1257,7 @@ const PM_STYLE_PARAMS = {
   milestone_size: { f: 'ganttMsSize', t: 'num', min: 6, max: 30, def: 14, kinds: ['gantt'], group: 'Milestones', label: 'Size (px)' },
   milestone_color: { f: 'ganttMsColor', t: 'color', kinds: ['gantt'], group: 'Milestones', label: 'Color', auto: 'series color' },
   critical_color: { f: 'ganttCritColor', t: 'color', def: '#b91c1c', kinds: ['gantt'], group: 'Critical path & arrows', label: 'Critical path color', show: (c) => !!c.ganttDeps },
-  critical_scope: { f: 'ganttCritScope', t: 'enum', vals: ['', 'lane', 'linked'], names: ['The whole chart', 'Each swimlane', 'Linked swimlanes together'], kinds: ['gantt'], group: 'Critical path & arrows', label: 'Critical path measured over', show: (c) => !!c.ganttDeps && !!c.ganttLanes },
+  critical_scope: { f: 'ganttCritScope', t: 'enum', vals: ['linked', 'lane', 'whole'], names: ['Linked swimlanes together', 'Each swimlane', 'The whole chart'], kinds: ['gantt'], group: 'Critical path & arrows', label: 'Critical path measured over', show: (c) => !!c.ganttDeps && !!c.ganttLanes },
   critical_width: { f: 'ganttCritWidth', t: 'num', min: 0.5, max: 8, def: 2.5, kinds: ['gantt'], group: 'Critical path & arrows', label: 'Critical path thickness (px)', show: (c) => !!c.ganttDeps },
   link_color: { f: 'ganttLinkColor', t: 'color', def: '#64748b', kinds: ['gantt'], group: 'Critical path & arrows', label: 'Arrow color', show: (c) => !!c.ganttDeps },
   conflict_color: { f: 'ganttConflictColor', t: 'color', kinds: ['gantt'], group: 'Critical path & arrows', label: 'Conflict arrow color (successor starts before its predecessor ends)', auto: 'critical path color', show: (c) => !!c.ganttDeps },
@@ -4232,7 +4232,7 @@ const EMBEDDED_AUTOLOAD = false;
 // alias shell is not functional drift. Single-line contract like the EMBEDDED_*
 // lines above - it is normalized out of computeShellHash, so stamping it never
 // changes this shell's own hash.
-const SHELL_HASH_ALIASES = ['702975ec'];
+const SHELL_HASH_ALIASES = ['352057c7'];
 // Set to a unique id by the Portable HTML export so each portable file keeps its
 // own autosave, isolated from the canonical app and from other portables (file://
 // pages otherwise share a single localStorage and would cross-contaminate).
@@ -13891,8 +13891,8 @@ with the analysis defaults, this block wins.
       nodes.set(it.name, { name: it.name, S: it.sMs, E: it.eMs, preds: new Set(), succs: new Set() });
     });
     const links = [];let unmatched = 0;let cycle = null;let cpmOn = false;
-    const critScope = (chart.ganttCritScope === 'lane' || chart.ganttCritScope === 'linked') && keys.cat.includes(chart.ganttLanes) && chart.ganttLanes !== task && chart.ganttLanes !== parKey ? chart.ganttCritScope : '';
-    let endOfNode = null,sameLane = null;
+    const critScope = chart.ganttCritScope !== 'whole' && keys.cat.includes(chart.ganttLanes) && chart.ganttLanes !== task && chart.ganttLanes !== parKey ? chart.ganttCritScope === 'lane' ? 'lane' : 'linked' : '';
+    let endOfNode = null,sameLane = null,endWhy = null,critGroups = 1,critJoined = false;
     if (depKey) {
       const byLower = new Map();nodes.forEach((n, k) => byLower.set(k.trim().toLowerCase(), k));
       // Predecessor lists often cite row IDs (MS Project, Smartsheet) - accept an ID-like column too.
@@ -13917,9 +13917,10 @@ with the analysis defaults, this block wins.
         cpmOn = true;
         const PF = Math.max(...[...nodes.values()].map((n) => n.E));
         // Critical path measured over each swimlane, or each group of swimlanes joined by links (2026-10-09:
-        // several projects, one lane each, only the one ending last had a critical path). Each swimlane: its
-        // own tasks and links only, ending at its own finish (each project alone). Linked swimlanes: links
-        // across lanes count, and the group ends at the finish of its last lane (a program).
+        // several projects, one lane each, only the one ending last had a critical path). Linked swimlanes,
+        // the default with swimlanes: links across lanes count, a group ends at the finish of its last lane
+        // (a program), and a lane linked to no other is measured alone (MS Project's multiple critical
+        // paths, by swimlane). Each swimlane: its own tasks and links only. The whole chart: one path.
         if (critScope) {
           const laneOfNode = new Map();
           items.forEach((it) => {if (!laneOfNode.has(it.name)) {const v = it.d[chart.ganttLanes];laneOfNode.set(it.name, v === null || v === undefined || String(v).trim() === '' || v === 'Unknown' ? '' : String(v));}});
@@ -13930,6 +13931,10 @@ with the analysis defaults, this block wins.
           nodes.forEach((n, k) => {const g = find(laneOfNode.get(k));groupEnd.set(g, Math.max(groupEnd.get(g) ?? -Infinity, n.E));});
           endOfNode = (k) => groupEnd.get(find(laneOfNode.get(k)));
           if (critScope === 'lane') sameLane = (a, b) => laneOfNode.get(a) === laneOfNode.get(b);
+          const lanesIn = new Map();
+          nodes.forEach((n, k) => {const g = find(laneOfNode.get(k));if (!lanesIn.has(g)) lanesIn.set(g, new Set());lanesIn.get(g).add(laneOfNode.get(k));});
+          critGroups = lanesIn.size;critJoined = [...lanesIn.values()].some((s) => s.size > 1);
+          endWhy = (k) => critGroups < 2 ? 'it ends when the plan ends' : lanesIn.get(find(laneOfNode.get(k))).size === 1 ? 'it ends when its swimlane ends' : 'it ends when its linked swimlanes end';
         }
         for (let i = topo.length - 1; i >= 0; i--) {
           const n = nodes.get(topo[i]);
@@ -13950,8 +13955,9 @@ with the analysis defaults, this block wins.
       if (Math.abs(n.TF) <= TOL) {
         // Say why (user, 2026-10-05: "no slack" next to "After: 4.3" read as "no slack after 4.3"): nothing
         // after it, so it ends when the plan ends, or the task after it that leaves no room.
-        const next = [...n.succs].map((s) => nodes.get(s)).filter((s) => s && s.LS != null && Math.abs(s.LS - n.LF) <= TOL).map((s) => s.name);
-        const why = !n.succs.size ? critScope === 'lane' ? 'it ends when its swimlane ends' : critScope === 'linked' ? 'it ends when its linked swimlanes end' : 'it ends when the plan ends' : next.length ? `next on the path: ${next.slice(0, 2).map(ganttEsc).join(', ')}${next.length > 2 ? ` +${next.length - 2} more` : ''}` : 'the tasks after it leave no room';
+        const own = sameLane ? [...n.succs].filter((s) => sameLane(s, name)) : [...n.succs];
+        const next = own.map((s) => nodes.get(s)).filter((s) => s && s.LS != null && Math.abs(s.LS - n.LF) <= TOL).map((s) => s.name);
+        const why = !own.length ? endWhy ? endWhy(name) : 'it ends when the plan ends' : next.length ? `next on the path: ${next.slice(0, 2).map(ganttEsc).join(', ')}${next.length > 2 ? ` +${next.length - 2} more` : ''}` : 'the tasks after it leave no room';
         return `<br><b>Critical path</b>: no slack, a delay moves the end of the plan (${why})`;
       }
       const dd = Math.round(n.TF / GANTT_DAY * 10) / 10;
@@ -14293,7 +14299,7 @@ with the analysis defaults, this block wins.
     }
     const lo = Math.min(...items.map((it) => it.sMs), ...[...baseOf.values()].map((b) => b.bsMs)),hi = Math.max(...items.map((it) => it.eMs), ...[...baseOf.values()].map((b) => b.beMs));
     const critCount = critOn ? [...nodes.keys()].filter(isCrit).length : 0;
-    traces[0].meta = { cluesGantt: { order, labels: shownLabels, lanes: lanes.map((l) => ({ name: l.name, first: l.first, last: l.last })), laned: !!laneKey, tree: !!parKey, linkPaths, warnings, foldable: [...lanes.map((l) => l.key), ...items.filter((it) => it.sum).map((it) => it.name)], baseline: baseOf.size > 0, lo, hi, skipped, asOf, snapKey, tasks: items.length ? seen.size : 0, deps: !!depKey, links: links.length, cpmOn, critOn, critCount, critScope, conflicts, unmatched, cycle } };
+    traces[0].meta = { cluesGantt: { order, labels: shownLabels, lanes: lanes.map((l) => ({ name: l.name, first: l.first, last: l.last })), laned: !!laneKey, tree: !!parKey, linkPaths, warnings, foldable: [...lanes.map((l) => l.key), ...items.filter((it) => it.sum).map((it) => it.name)], baseline: baseOf.size > 0, lo, hi, skipped, asOf, snapKey, tasks: items.length ? seen.size : 0, deps: !!depKey, links: links.length, cpmOn, critOn, critCount, critScope, critGroups, critJoined, conflicts, unmatched, cycle } };
     return traces;
   };
 
@@ -19287,7 +19293,7 @@ with the analysis defaults, this block wins.
         if (g && g.deps) {
           const dn = [];
           if (g.cycle) dn.push(`Dependency loop (${g.cycle.join(', ')}) - no critical path`);else
-          if (g.critOn) dn.push(`Outlined: the critical path${g.critScope === 'lane' ? ' of each swimlane' : g.critScope === 'linked' ? ' of each group of linked swimlanes' : ''}, ${g.critCount} task${g.critCount === 1 ? '' : 's'} with no slack on the plan's own dates`);else
+          if (g.critOn) dn.push(`Outlined: ${g.critGroups > 1 ? `${g.critGroups} critical paths, one for each swimlane${g.critJoined ? ' or group of linked swimlanes' : ''}` : 'the critical path'}, ${g.critCount} task${g.critCount === 1 ? '' : 's'} with no slack on the plan's own dates`);else
           if (!g.links) dn.push(`No dependencies found in ${getCatAlias(chart.ganttDeps)}`);
           if (g.conflicts) dn.push(`${g.conflicts} successor${g.conflicts === 1 ? ' starts' : 's start'} before ${g.conflicts === 1 ? 'its predecessor ends' : 'their predecessors end'} (${(PM_DASH_NAMES[PM_DASHES.indexOf(PM_DASHES.includes(chart.ganttConflictDash) ? chart.ganttConflictDash : 'dash')] || 'Dashed').toLowerCase()} arrows)`);
           if (g.unmatched) dn.push(`${g.unmatched} predecessor name${g.unmatched === 1 ? '' : 's'} not found among the tasks shown`);
