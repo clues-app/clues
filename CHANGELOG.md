@@ -2,6 +2,10 @@
 
 Short notes on what's new. The full manual is the [User Guide](USER_GUIDE.md).
 
+## 2026-10-16
+
+- **Presentation: an empty section is left out.** A deck saved while an empty section was the active tab (for example **Relationships**, with the Gantt under **Over Time**) opened in Presentation mode on that empty section, with its *No relationship charts yet* box and **Add a chart** picker. Presenting, a section with nothing to show (no charts, or only charts hidden from the presentation) is now never drawn, the active one included. Editing is unchanged: the empty section keeps its box for adding a chart.
+
 ## 2026-10-09
 
 - **Gantt: a project linked to no other gets its own critical path, by default.** A Gantt with **Swimlanes** and **Depends on** now measures over **Linked swimlanes together** unless told otherwise: swimlanes joined by links share one critical path, and a swimlane linked to no other has its own (as MS Project's *multiple critical paths*, by swimlane). Two independent projects each show their critical path; before, only the one ending last did unless the setting was changed by hand. A Gantt without swimlanes, or whose swimlanes are all linked into one network, shows the same single path as before. **The whole chart** (one path, as before) stays available; AI `chart_pm` `critical_scope`: `linked` (the default), `lane`, `whole`. The note under the chart counts the paths: *Outlined: 2 critical paths, one for each swimlane, ...*.

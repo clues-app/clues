@@ -4232,7 +4232,7 @@ const EMBEDDED_AUTOLOAD = false;
 // alias shell is not functional drift. Single-line contract like the EMBEDDED_*
 // lines above - it is normalized out of computeShellHash, so stamping it never
 // changes this shell's own hash.
-const SHELL_HASH_ALIASES = ['352057c7'];
+const SHELL_HASH_ALIASES = ['a9ac4f57'];
 // Set to a unique id by the Portable HTML export so each portable file keeps its
 // own autosave, isolated from the canonical app and from other portables (file://
 // pages otherwise share a single localStorage and would cross-contaminate).
@@ -4240,7 +4240,7 @@ const EMBEDDED_EXPORT_ID = '';
 const AUTOSAVE_KEY = EMBEDDED_EXPORT_ID ? 'analyzer_autosave_' + EMBEDDED_EXPORT_ID : 'analyzer_autosave';
 // Shell-app release date, used as the "dataset date" for the built-in showcase and
 // saved into every workspace. Bump this when releasing a new build.
-const APP_VERSION = '2026-10-09';
+const APP_VERSION = '2026-10-16';
 // Stamped by the Portable HTML export with the date the portable was created. Falls
 // back to APP_VERSION (the showcase's effective date) in the canonical app.
 const EMBEDDED_WORKSPACE_DATE = '';
@@ -5753,6 +5753,8 @@ const App = () => {
   // build many, present few. Present mode renders only the included ones; the working view
   // always shows everything.
   const presentFilter = (arr) => presentMode ? (arr || []).filter((c) => c && c.presentHide !== true) : arr || [];
+  // Presenting, a family with nothing to show is left out, even the deck's active one (user, 2026-10-16: a deck whose
+  // Gantt came first opened on an empty Relationships section with its Add a chart box). Editing keeps the box.
   // Present-mode section menu: a frozen bar of the chart families. Scrolling highlights the
   // family under the viewport (scrollspy); clicking a name glides to that family's first chart.
   // The spy sleeps briefly after a click so the highlight doesn't flicker through the families
@@ -17618,7 +17620,7 @@ with the analysis defaults, this block wins.
 
 
 
-    (activeTab === 'relationships' || allChartsMode && presentFilter(relCharts).length > 0) && data && /*#__PURE__*/
+    (activeTab === 'relationships' && (!presentMode || presentFilter(relCharts).length > 0) || allChartsMode && presentFilter(relCharts).length > 0) && data && /*#__PURE__*/
     React.createElement("div", { className: "pb-12", style: { order: famOrder.indexOf('rel') } },
     allChartsMode && /*#__PURE__*/React.createElement("div", { id: "clues-sec-rel", draggable: !presentMode, onDragStart: () => setDragFam('rel'), onDragEnd: () => setDragFam(null), onDragOver: (e) => {if (dragFam) e.preventDefault();}, onDrop: (e) => {e.preventDefault();moveFam(dragFam, 'rel');}, title: presentMode ? undefined : 'Drag this heading onto another section to reorder the deck', style: { ...sectionHeadingStyle, scrollMarginTop: '3.5rem', ...(presentMode ? {} : { cursor: 'grab' }) }, className: `${presentMode ? 'text-2xl sm:text-3xl tracking-normal text-slate-500 dark:text-slate-300 mb-4 pb-2' : 'text-xs tracking-wide text-slate-400 dark:text-slate-500 mb-3 pb-1'} border-b border-slate-200 dark:border-slate-700` }, "Relationships"), /*#__PURE__*/
     React.createElement("div", { className: `grid gap-4 sm:gap-8 ${twoColGrid ? "cols-2 grid-cols-1 md:grid-cols-2" : "cols-1 grid-cols-1"}` },
@@ -18125,7 +18127,7 @@ with the analysis defaults, this block wins.
 
 
 
-    (activeTab === 'distributions' || allChartsMode && presentFilter(distCharts).length > 0) && data && /*#__PURE__*/
+    (activeTab === 'distributions' && (!presentMode || presentFilter(distCharts).length > 0) || allChartsMode && presentFilter(distCharts).length > 0) && data && /*#__PURE__*/
     React.createElement("div", { className: "pb-12", style: { order: famOrder.indexOf('dist') } },
     allChartsMode && /*#__PURE__*/React.createElement("div", { id: "clues-sec-dist", draggable: !presentMode, onDragStart: () => setDragFam('dist'), onDragEnd: () => setDragFam(null), onDragOver: (e) => {if (dragFam) e.preventDefault();}, onDrop: (e) => {e.preventDefault();moveFam(dragFam, 'dist');}, title: presentMode ? undefined : 'Drag this heading onto another section to reorder the deck', style: { ...sectionHeadingStyle, scrollMarginTop: '3.5rem', ...(presentMode ? {} : { cursor: 'grab' }) }, className: `${presentMode ? 'text-2xl sm:text-3xl tracking-normal text-slate-500 dark:text-slate-300 mb-4 pb-2' : 'text-xs tracking-wide text-slate-400 dark:text-slate-500 mb-3 pb-1'} border-b border-slate-200 dark:border-slate-700` }, "Distributions"), /*#__PURE__*/
     React.createElement("div", { className: `grid gap-4 sm:gap-8 ${twoColGrid ? "cols-2 grid-cols-1 md:grid-cols-2" : "cols-1 grid-cols-1"}` },
@@ -18330,7 +18332,7 @@ with the analysis defaults, this block wins.
 
 
 
-    (activeTab === 'comparisons' || allChartsMode && presentFilter(compCharts).length > 0) && data && /*#__PURE__*/
+    (activeTab === 'comparisons' && (!presentMode || presentFilter(compCharts).length > 0) || allChartsMode && presentFilter(compCharts).length > 0) && data && /*#__PURE__*/
     React.createElement("div", { className: "pb-12", style: { order: famOrder.indexOf('comp') } },
     allChartsMode && /*#__PURE__*/React.createElement("div", { id: "clues-sec-comp", draggable: !presentMode, onDragStart: () => setDragFam('comp'), onDragEnd: () => setDragFam(null), onDragOver: (e) => {if (dragFam) e.preventDefault();}, onDrop: (e) => {e.preventDefault();moveFam(dragFam, 'comp');}, title: presentMode ? undefined : 'Drag this heading onto another section to reorder the deck', style: { ...sectionHeadingStyle, scrollMarginTop: '3.5rem', ...(presentMode ? {} : { cursor: 'grab' }) }, className: `${presentMode ? 'text-2xl sm:text-3xl tracking-normal text-slate-500 dark:text-slate-300 mb-4 pb-2' : 'text-xs tracking-wide text-slate-400 dark:text-slate-500 mb-3 pb-1'} border-b border-slate-200 dark:border-slate-700` }, "Comparisons"), /*#__PURE__*/
     React.createElement("div", { className: `grid gap-4 sm:gap-8 ${twoColGrid ? "cols-2 grid-cols-1 md:grid-cols-2" : "cols-1 grid-cols-1"}` },
@@ -18929,7 +18931,7 @@ with the analysis defaults, this block wins.
 
 
 
-    (activeTab === 'time' || allChartsMode && presentFilter(timeCharts).length > 0) && data && /*#__PURE__*/
+    (activeTab === 'time' && (!presentMode || presentFilter(timeCharts).length > 0) || allChartsMode && presentFilter(timeCharts).length > 0) && data && /*#__PURE__*/
     React.createElement("div", { className: "pb-12", style: { order: famOrder.indexOf('time') } },
     allChartsMode && /*#__PURE__*/React.createElement("div", { id: "clues-sec-time", draggable: !presentMode, onDragStart: () => setDragFam('time'), onDragEnd: () => setDragFam(null), onDragOver: (e) => {if (dragFam) e.preventDefault();}, onDrop: (e) => {e.preventDefault();moveFam(dragFam, 'time');}, title: presentMode ? undefined : 'Drag this heading onto another section to reorder the deck', style: { ...sectionHeadingStyle, scrollMarginTop: '3.5rem', ...(presentMode ? {} : { cursor: 'grab' }) }, className: `${presentMode ? 'text-2xl sm:text-3xl tracking-normal text-slate-500 dark:text-slate-300 mb-4 pb-2' : 'text-xs tracking-wide text-slate-400 dark:text-slate-500 mb-3 pb-1'} border-b border-slate-200 dark:border-slate-700` }, "Over Time"), /*#__PURE__*/
     React.createElement("div", { className: `grid gap-4 sm:gap-8 ${twoColGrid ? "cols-2 grid-cols-1 md:grid-cols-2" : "cols-1 grid-cols-1"}` },
